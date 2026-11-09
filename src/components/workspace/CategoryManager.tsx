@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { DEFAULT_NOTE_CATEGORIES, HIGHLIGHT_COLORS, type HighlightColor } from '@shared/models';
 import { Icon } from '@/components/ui/Icon';
@@ -55,6 +56,15 @@ export function CategoryManager({ open, onClose, kind, noteCounts, onChanged }: 
     setAddColor(freeColors[0] ?? HIGHLIGHT_COLORS[0]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, kind]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
 
   const reload = async () => {
     const next = await ipc.settings.get();
@@ -133,13 +143,13 @@ export function CategoryManager({ open, onClose, kind, noteCounts, onChanged }: 
     ? bookCats.map((name) => ({ name, color: null as HighlightColor | null }))
     : noteCats.map((c) => ({ name: c.name, color: c.color }));
 
-  return (
+  const modal = (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[92] flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-[95] flex items-center justify-center p-6">
           <motion.div
             className="absolute inset-0"
-            style={{ background: 'rgba(20,16,12,0.24)' }}
+            style={{ background: 'rgba(24,19,14,0.28)' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -149,74 +159,66 @@ export function CategoryManager({ open, onClose, kind, noteCounts, onChanged }: 
 
           <motion.div
             className="cat-modal"
-            initial={{ opacity: 0, y: 14, scale: 0.975 }}
+            initial={{ opacity: 0, y: 16, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.985 }}
+            exit={{ opacity: 0, y: 10, scale: 0.98 }}
             transition={{ duration: 0.24, ease }}
             role="dialog"
-            aria-label={isBook ? '书籍分类' : '笔记分类'}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') onClose();
-            }}
+            aria-label="分类管理"
           >
             <header className="cat-modal-head">
-              <span className="cat-modal-icon">
-                <Icon name={isBook ? 'book' : 'pen'} size={20} />
-              </span>
-              <div className="cat-modal-title">
-                <h2>{isBook ? '书籍分类' : '笔记分类'}</h2>
+              <div className="cat-modal-head-text">
+                <h2>分类管理</h2>
                 <p>
-                  {isBook
-                    ? '给书归个类，改名会同步所有书；删除只去掉这个分类，书还在。'
-                    : '一个分类占一种颜色，颜色不能重复；改名会同步到已写下的笔记。'}
+                  {isBook ? '书籍分类' : '笔记分类'} · 共 {items.length} 种
+                  {isBook ? ' · 改名会同步所有书' : ' · 一种颜色只给一个分类'}
                 </p>
               </div>
               <button type="button" className="cat-modal-close" onClick={onClose} aria-label="关闭">
-                <Icon name="close" size={15} />
+                <Icon name="close" size={16} />
               </button>
             </header>
 
-            <div className="cat-modal-body">
-              <div className="cat-modal-meta">
-                <span>共 {items.length} 种</span>
-                {!isBook && <span className="cat-modal-meta-dim">颜色是分类的记号，不会重复</span>}
-              </div>
+            <div className="cat-modal-list">
+              {items.map((item) => {
+                const count = isBook ? bookCounts.get(item.name) ?? 0 : noteCounts?.get(item.name) ?? 0;
+                const isEditing = editing?.name === item.name;
+                const isPicking = pickingFor === item.name;
+                return (
+                  <div className="cat-modal-item" key={item.name}>
+                    <div className="cat-modal-row" data-editing={isEditing || undefined}>
+                      {!isBook && item.color && (
+                        <button
+                          type="button"
+                          className="cat-modal-dot"
+                          style={{ background: COLOR_META[item.color].solid }}
+                          onClick={() => setPickingFor(isPicking ? null : item.name)}
+                          aria-label={`${item.name}的颜色，点击更换`}
+                          title="更换颜色"
+                        />
+                      )}
 
-              <div className="cat-modal-list">
-                {items.map((item) => {
-                  const count = isBook ? bookCounts.get(item.name) ?? 0 : noteCounts?.get(item.name) ?? 0;
-                  const isEditing = editing?.name === item.name;
-                  return (
-                    <div className="cat-modal-item" key={item.name}>
-                      <div className="cat-modal-row">
-                        {!isBook && item.color && (
-                          <button
-                            type="button"
-                            className="cat-modal-dot"
-                            style={{ background: COLOR_META[item.color].solid }}
-                            onClick={() => setPickingFor(pickingFor === item.name ? null : item.name)}
-                            aria-label="更换颜色"
-                            title="更换颜色"
-                          />
-                        )}
-                        {isEditing ? (
-                          <input
-                            className="cat-modal-input"
-                            autoFocus
-                            value={editing.draft}
-                            onChange={(e) => setEditing({ ...editing, draft: e.target.value })}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') void commitRename();
-                              if (e.key === 'Escape') setEditing(null);
-                            }}
-                            onBlur={() => void commitRename()}
-                          />
-                        ) : (
-                          <span className="cat-modal-name">{item.name}</span>
-                        )}
-                        <span className="cat-modal-count">
-                          {count} {isBook ? '本' : '条'}
-                        </span>
+                      {isEditing ? (
+                        <input
+                          className="cat-modal-input"
+                          autoFocus
+                          value={editing.draft}
+                          onChange={(e) => setEditing({ ...editing, draft: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') void commitRename();
+                            if (e.key === 'Escape') setEditing(null);
+                          }}
+                          onBlur={() => void commitRename()}
+                        />
+                      ) : (
+                        <span className="cat-modal-name">{item.name}</span>
+                      )}
+
+                      <span className="cat-modal-count">
+                        {count} {isBook ? '本' : '条'}
+                      </span>
+
+                      <div className="cat-modal-actions">
                         {!isEditing && (
                           <button
                             type="button"
@@ -233,39 +235,40 @@ export function CategoryManager({ open, onClose, kind, noteCounts, onChanged }: 
                           onClick={() => (confirming === item.name ? void doRemove(item.name) : setConfirming(item.name))}
                           onBlur={() => setConfirming(null)}
                         >
-                          {confirming === item.name ? '确认删除' : '删除'}
+                          {confirming === item.name ? '确认？' : '删除'}
                         </button>
                       </div>
-
-                      {pickingFor === item.name && !isBook && item.color && (
-                        <div className="cat-modal-colors">
-                          {HIGHLIGHT_COLORS.map((c) => {
-                            const taken = usedColors.has(c) && item.color !== c;
-                            return (
-                              <button
-                                key={c}
-                                type="button"
-                                className="cat-modal-color"
-                                data-taken={taken || undefined}
-                                style={{ background: COLOR_META[c].solid }}
-                                disabled={taken}
-                                title={taken ? `${COLOR_META[c].label} 已被别的分类占用` : COLOR_META[c].label}
-                                onClick={() => void changeColor(item.name, c)}
-                              />
-                            );
-                          })}
-                        </div>
-                      )}
                     </div>
-                  );
-                })}
-                {items.length === 0 && <p className="cat-modal-empty">还没有分类，先在下面加一个。</p>}
-              </div>
+
+                    {isPicking && !isBook && item.color && (
+                      <div className="cat-modal-colors">
+                        {HIGHLIGHT_COLORS.map((c) => {
+                          const taken = usedColors.has(c) && item.color !== c;
+                          return (
+                            <button
+                              key={c}
+                              type="button"
+                              className="cat-modal-color"
+                              data-taken={taken || undefined}
+                              data-active={item.color === c || undefined}
+                              style={{ background: COLOR_META[c].solid }}
+                              disabled={taken}
+                              title={taken ? `${COLOR_META[c].label} 已被别的分类占用` : COLOR_META[c].label}
+                              onClick={() => void changeColor(item.name, c)}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {items.length === 0 && <p className="cat-modal-empty">还没有分类，在下面加一个。</p>}
             </div>
 
             <footer className="cat-modal-add">
               <input
-                className="cat-modal-input"
+                className="cat-modal-input cat-modal-input-add"
                 value={adding}
                 onChange={(e) => setAdding(e.target.value)}
                 placeholder={isBook ? '新分类名字，如「推理」' : '新分类名字，如「灵感」'}
@@ -303,4 +306,7 @@ export function CategoryManager({ open, onClose, kind, noteCounts, onChanged }: 
       )}
     </AnimatePresence>
   );
+
+  // 挂到 body：父级有 transform 时，fixed 定位会跑偏，弹窗就会"整体有问题"
+  return createPortal(modal, document.body);
 }

@@ -80,7 +80,9 @@ export function WorkspaceOverview({
   const ring = 2 * Math.PI * 40;
   const recent =
     [...groups].sort((a, b) => (b.meta.lastOpenedAt ?? 0) - (a.meta.lastOpenedAt ?? 0))[0] ?? groups[0];
-  const recentProgress = recent ? progressMap[recent.meta.id] : undefined;
+  const recentProgress = recent
+    ? progressMap[recent.meta.id] ?? recent.copies.map((c) => progressMap[c.id]).find(Boolean)
+    : undefined;
   /** 同一本书可能有多个格式副本，任何一个打开过都算这本书读过 */
   const idsOf = (g: ShelfGroup) => [g.meta.id, ...g.copies.map((c) => c.id)];
   const reading = groups.filter((g) => idsOf(g).some((id) => readStatus(progressMap[id]) === 'reading')).length;

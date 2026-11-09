@@ -8,6 +8,7 @@ import type { WorkspaceNote } from '@/lib/workspace';
 import { copyText } from '@/lib/workspace';
 import { toast } from '@/lib/toast';
 import { ipc } from '@/lib/ipc';
+import { ExportNotesDialog } from './ExportNotesDialog';
 
 interface Props {
   notes: WorkspaceNote[];
@@ -331,6 +332,13 @@ export function WorkspaceNotes({ notes, loading, onOpenNote, onOpenLibrary, onMa
           ))}
         </div>
       )}
+      <ExportNotesDialog
+        open={exportOpen}
+        count={notes.length}
+        busy={exportBusy}
+        onClose={() => setExportOpen(false)}
+        onExport={runExport}
+      />
     </div>
   );
 }

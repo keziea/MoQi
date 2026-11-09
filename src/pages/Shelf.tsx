@@ -48,6 +48,15 @@ export function Shelf({ onOpen, embedded = false }: ShelfProps) {
 
   const groups = useMemo(() => groupBooks(books, progressMap), [books, progressMap]);
 
+  /** 同一本书可能有多个格式副本，进度可能记在任意一个 id 上 */
+  const progressOf = (g: ShelfGroup) => {
+    if (progressMap[g.meta.id]) return progressMap[g.meta.id];
+    for (const c of g.copies) {
+      if (progressMap[c.id]) return progressMap[c.id];
+    }
+    return null;
+  };
+
   const categoryList = useMemo(() => {
     const counts = new Map<string, number>();
     let unclassified = 0;
@@ -70,7 +79,7 @@ export function Shelf({ onOpen, embedded = false }: ShelfProps) {
     let finished = 0;
     let unread = 0;
     for (const g of groups) {
-      const st = readStatus(progressMap[g.meta.id]);
+      const st = readStatus(progressOf(g));
       if (st === 'finished') finished += 1;
       else if (st === 'reading') reading += 1;
       else unread += 1;
@@ -81,7 +90,7 @@ export function Shelf({ onOpen, embedded = false }: ShelfProps) {
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = groups.filter((g) => {
-      const st = readStatus(progressMap[g.meta.id]);
+      const st = readStatus(progressOf(g));
       if (filter === 'reading' && st !== 'reading') return false;
       if (filter === 'finished' && st !== 'finished') return false;
       if (filter === 'unread' && st !== 'unread') return false;
@@ -104,7 +113,7 @@ export function Shelf({ onOpen, embedded = false }: ShelfProps) {
   }, [groups, progressMap, filter, query, sort, catFilter]);
 
   const recentGroup = useMemo(
-    () => groups.find((g) => g.meta.lastOpenedAt || (progressMap[g.meta.id]?.ratio ?? 0) > 0),
+    () => groups.find((g) => g.meta.lastOpenedAt || (progressOf(g)?.ratio ?? 0) > 0),
     [groups, progressMap]
   );
 
@@ -223,7 +232,7 @@ export function Shelf({ onOpen, embedded = false }: ShelfProps) {
               {recentGroup && !query && filter === 'all' && (
                 <ContinueCard
                   meta={recentGroup.meta}
-                  ratio={progressMap[recentGroup.meta.id]?.ratio ?? 0}
+                  ratio={progressOf(recentGroup)?.ratio ?? 0}
                   copies={recentGroup.copies.length}
                   onOpen={() => onOpen(recentGroup.meta.id)}
                 />
@@ -388,7 +397,8 @@ export function Shelf({ onOpen, embedded = false }: ShelfProps) {
                           meta={g.meta}
                           copies={g.copies.length}
                           formats={g.formats}
-                          ratio={progressMap[g.meta.id]?.ratio ?? 0}
+                          ratio={progressOf(g)?.ratio ?? 0}
+                          status={readStatus(progressOf(g))}
                           onOpen={() => onOpen(g.meta.id)}
                           onSwitchFormat={(format) => switchFormat(g, format)}
                         />
