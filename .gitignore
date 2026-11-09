@@ -16,6 +16,14 @@ release/
 _待删除/
 .tmp/
 
+# 打包成品目录（Electron 绿色版，禁止入库）
+墨栖*/
+mt*/
+win-unpacked/
+
+# Electron 打包二进制，源码仓库只存代码，不存编译产物
+*.asar
+
 # 会话与临时目录
 .workbuddy/
 .trash/
