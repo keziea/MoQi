@@ -242,7 +242,7 @@ export function Workspace({ section, onSection, onOpen }: Props) {
             <Icon name="settings" size={17} />
             <span>设置</span>
           </button>
-          <span className="ws-version">v0.1</span>
+          <span className="ws-version">v0.3</span>
         </div>
       </aside>
 
