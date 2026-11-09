@@ -15,6 +15,8 @@
 [![React](https://img.shields.io/badge/React-18-61dafb?style=flat-square&logo=react&logoColor=white)](#)
 [![Offline](https://img.shields.io/badge/100%25%20%E6%9C%AC%E5%9C%B0-%E4%B8%8D%E8%81%94%E7%BD%91-5b8266?style=flat-square)](#)
 
+**GitHub** · https://github.com/keziea/MoQi 　|　 **Gitee** · https://gitee.com/azs_A/ink-residence
+
 <img src="docs/screenshots/01-workspace.png" alt="墨栖工作台" width="100%" />
 
 </div>
@@ -104,8 +106,8 @@
 
 ### 方式一：直接用（给只想读书的人）
 
-> **目前仓库暂未发布预编译安装包。** 可以先看 [Releases](../../releases) 页有没有新的绿色版；
-> 如果没有，用下面的方式二自行构建，全程约 2 分钟。
+> **本仓库只收录源码，不收录约 300MB 的打包产物。** 如果 [Releases](../../releases) 页有绿色版，下载解压即可使用；
+> 没有的话按下面的方式二自行构建，全程约 2 分钟。
 
 绿色版不需要安装，解压后双击 `墨栖.exe` 即可。
 
@@ -117,9 +119,11 @@
 需要 **Node.js ≥ 18**（推荐 20 或 22）和 **Git**。
 
 ```bash
-# 1. 克隆
-git clone https://github.com/keziea/MoQi.git
-cd MoQi
+# 1. 克隆（两个源任选其一，内容完全同步）
+git clone https://github.com/keziea/MoQi.git moqi
+# 国内访问 GitHub 慢时，改用 Gitee：
+# git clone https://gitee.com/azs_A/ink-residence.git moqi
+cd moqi
 
 # 2. 安装依赖
 npm install

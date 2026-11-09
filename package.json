@@ -4,6 +4,26 @@
   "private": true,
   "description": "墨栖 · Windows 桌面中文阅读器",
   "author": "Moqi",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/keziea/MoQi.git"
+  },
+  "homepage": "https://github.com/keziea/MoQi#readme",
+  "bugs": {
+    "url": "https://github.com/keziea/MoQi/issues"
+  },
+  "keywords": [
+    "ebook",
+    "reader",
+    "epub",
+    "mobi",
+    "pdf",
+    "txt",
+    "electron",
+    "chinese",
+    "阅读器"
+  ],
   "main": "dist-electron/electron/main.js",
   "scripts": {
     "dev": "npm run build:electron && concurrently -k -n VITE,ELECTRON -c cyan,yellow \"vite\" \"wait-on tcp:5173 && npm run start:electron\"",
