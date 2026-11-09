@@ -1,0 +1,28 @@
+node_modules/
+dist/
+dist-electron/
+dist-package/
+*.log
+.DS_Store
+Thumbs.db
+.vite/
+
+# 示例书籍（本地资源，不入库）
+负动产时代_9787518083008/
+
+# 打包中间产物与临时目录
+out-*/
+release/
+_待删除/
+.tmp/
+
+# 会话与临时目录
+.workbuddy/
+.trash/
+generated-images/
+
+# 电子书本体不入库
+*.epub
+*.mobi
+*.azw3
+*.azw

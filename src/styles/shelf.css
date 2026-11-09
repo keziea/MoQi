@@ -1,0 +1,1023 @@
+/* ══════════════════════════════════════════════════════════════
+   书架 · 墨栖
+   一个更安静、更有编辑感的书库，不再像文件列表。
+   ══════════════════════════════════════════════════════════════ */
+
+.shelf-shell {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  background:
+    radial-gradient(1200px 500px at 12% -10%, var(--accent-tint), transparent 62%),
+    var(--bg);
+  color: var(--text);
+}
+
+.shelf-topbar {
+  display: flex;
+  height: 76px;
+  flex: 0 0 76px;
+  align-items: center;
+  gap: 20px;
+  padding: 0 40px;
+}
+
+.shelf-topbar > * {
+  min-width: 0;
+}
+
+.shelf-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex: 0 0 auto;
+}
+
+.shelf-brand-mark {
+  display: block;
+  width: 3px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.shelf-brand-name {
+  font-family: var(--font-serif);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0.16em;
+  color: var(--text);
+}
+
+.shelf-brand-sub {
+  margin-top: 3px;
+  font-family: var(--font-sans);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--text-tertiary);
+}
+
+.shelf-topbar-date {
+  margin-left: 10px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.shelf-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+}
+
+.shelf-action {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.shelf-action:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.shelf-main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.shelf-content {
+  width: min(1240px, calc(100% - 80px));
+  margin: 0 auto;
+  padding: 10px 0 96px;
+}
+
+/* ── 书库概览 ── */
+.shelf-overview {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 24px 26px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background:
+    linear-gradient(115deg, var(--accent-tint), transparent 56%),
+    var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.shelf-overview-main {
+  min-width: 0;
+  padding: 2px 0;
+}
+
+.shelf-eyebrow {
+  display: block;
+  margin-bottom: 9px;
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.shelf-title {
+  font-family: var(--font-serif);
+  font-size: 25px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.shelf-subtitle {
+  margin-top: 7px;
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+  color: var(--text-tertiary);
+}
+
+.shelf-overview-stats {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  gap: 0;
+  border-left: 1px solid var(--line);
+  padding-left: 26px;
+}
+
+.shelf-stat {
+  display: flex;
+  min-width: 66px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 16px;
+}
+
+.shelf-stat + .shelf-stat {
+  border-left: 1px solid var(--line);
+}
+
+.shelf-stat-value {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.shelf-stat-label {
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+}
+
+/* ── 继续阅读 ── */
+.shelf-continue {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: stretch;
+  gap: 22px;
+  margin-top: 22px;
+  overflow: hidden;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background:
+    linear-gradient(110deg, var(--accent-tint), transparent 64%),
+    var(--surface);
+  text-align: left;
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
+}
+
+.shelf-continue:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.shelf-continue-cover {
+  width: 78px;
+  height: 112px;
+  flex: 0 0 78px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--surface-sunken);
+  box-shadow: var(--shadow-sm);
+}
+
+.shelf-continue-cover-fallback {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+}
+
+.shelf-continue-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+.shelf-continue-kicker {
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  font-family: var(--font-sans);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.shelf-continue-copy h3 {
+  margin-top: 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-serif);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+.shelf-continue-copy > p {
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.shelf-continue-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 11px;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+.shelf-continue-format {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+.shelf-continue-progress {
+  display: flex;
+  width: 128px;
+  flex: 0 0 128px;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 15px;
+  padding-right: 2px;
+}
+
+.shelf-continue-number {
+  font-family: var(--font-sans);
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.shelf-continue-number span {
+  margin-left: 2px;
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.66;
+}
+
+.shelf-continue-rail {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  height: 2px;
+  border-radius: 0 2px 2px 0;
+  background: var(--accent);
+  opacity: 0.72;
+  transition: width 500ms var(--ease-out);
+}
+
+.shelf-continue::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--line);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.shelf-continue-cta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--accent);
+  opacity: 0.78;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.shelf-continue:hover .shelf-continue-cta {
+  opacity: 1;
+}
+
+/* ── 工具栏 ── */
+.shelf-books {
+  margin-top: 32px;
+}
+
+.shelf-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0 12px;
+  background: linear-gradient(var(--bg) 74%, transparent);
+}
+
+.shelf-search {
+  display: flex;
+  width: 270px;
+  height: 34px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text-tertiary);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.shelf-search:focus-within {
+  border-color: var(--accent-line);
+}
+
+.shelf-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 11.5px;
+  color: var(--text);
+}
+
+.shelf-search input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.shelf-search button {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--text-tertiary);
+}
+
+.shelf-search button:hover {
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+}
+
+.shelf-filters,
+.shelf-sort {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.shelf-filters button,
+.shelf-sort button {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+  color: var(--text-tertiary);
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.shelf-filters button:hover,
+.shelf-sort button:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.shelf-filters button[data-active],
+.shelf-sort button[data-active] {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-xs);
+}
+
+.shelf-sort {
+  margin-left: auto;
+  border-left: 1px solid var(--line);
+  padding-left: 12px;
+}
+
+/* ── 区块标题 ── */
+.shelf-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 12px 0 18px;
+}
+
+.shelf-section-head h3 {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+
+.shelf-section-head span {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+/* ── 书籍网格 ── */
+.shelf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 30px 26px;
+}
+
+.shelf-add-card {
+  display: flex;
+  width: 100%;
+  min-height: 320px;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 18px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  color: var(--text-tertiary);
+  text-align: center;
+  transition:
+    border-color var(--dur-base) var(--ease-out),
+    background var(--dur-base) var(--ease-out),
+    color var(--dur-base) var(--ease-out);
+}
+
+.shelf-add-card:hover {
+  border-color: var(--accent-line);
+  background: var(--accent-tint);
+  color: var(--accent);
+}
+
+.shelf-add-card-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 4px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-secondary);
+  transition: border-color var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
+}
+
+.shelf-add-card:hover .shelf-add-card-icon {
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+
+.shelf-add-card strong {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.shelf-add-card:hover strong {
+  color: var(--accent);
+}
+
+.shelf-add-card > span:last-child {
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+}
+
+.book-card {
+  position: relative;
+  min-width: 0;
+}
+
+.book-card-main {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.book-cover {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-sunken);
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out);
+}
+
+.book-card:hover .book-cover {
+  transform: translateY(-4px);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.book-cover-fallback {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  text-align: center;
+}
+
+.book-cover-line {
+  width: 22px;
+  height: 1px;
+  margin-bottom: 12px;
+  background: var(--accent);
+  opacity: 0.5;
+}
+
+.book-cover-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  font-family: var(--font-serif);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-tertiary);
+}
+
+.book-finished {
+  position: absolute;
+  right: 7px;
+  top: 7px;
+  display: flex;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 38%, transparent);
+  color: var(--surface);
+}
+
+.book-copies {
+  position: absolute;
+  left: 7px;
+  top: 7px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
+  font-family: var(--font-sans);
+  font-size: 8.5px;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+}
+
+.book-cover-progress {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 3px;
+  background: color-mix(in srgb, var(--text) 16%, transparent);
+}
+
+.book-cover-progress > div {
+  height: 100%;
+  background: var(--accent);
+}
+
+.book-card-copy {
+  margin-top: 12px;
+}
+
+.book-card-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.book-card-author-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 3px;
+}
+
+.book-card-author {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+.book-formats {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.book-format {
+  padding: 3px 7px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-family: var(--font-sans);
+  font-size: 9.5px;
+  font-weight: 500;
+  line-height: 14px;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.book-format:hover {
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+
+.book-format[data-active] {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.book-percent {
+  flex: 0 0 auto;
+  font-size: 9.5px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.book-more {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  display: flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
+  color: var(--text-secondary);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.book-card:hover .book-more,
+.book-more:focus-visible {
+  opacity: 1;
+}
+
+.book-more:hover {
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.book-menu {
+  position: absolute;
+  right: 0;
+  top: 34px;
+  z-index: 30;
+  width: 192px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+  padding: 4px 0;
+  box-shadow: var(--shadow-md);
+}
+
+.shelf-no-result {
+  display: flex;
+  min-height: 220px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: var(--text-tertiary);
+}
+
+.shelf-no-result p {
+  font-size: 12px;
+}
+
+.shelf-no-result button {
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.shelf-no-result button:hover {
+  background: var(--accent-soft);
+}
+
+@media (max-width: 1080px) {
+  .shelf-content {
+    width: calc(100% - 48px);
+  }
+  .shelf-overview {
+    flex-direction: column;
+    gap: 18px;
+  }
+  .shelf-overview-stats {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+    padding-top: 16px;
+  }
+  .shelf-stat {
+    flex: 1;
+    padding: 0 10px;
+  }
+  .shelf-stat:first-child {
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .shelf-topbar {
+    padding: 0 20px;
+  }
+  .shelf-topbar-date {
+    display: none;
+  }
+  .shelf-content {
+    width: calc(100% - 40px);
+  }
+  .shelf-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .shelf-search {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+  .shelf-sort {
+    margin-left: 0;
+  }
+  .shelf-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 24px 18px;
+  }
+  .shelf-overview-stats {
+    overflow-x: auto;
+  }
+  .shelf-continue {
+    gap: 14px;
+    padding: 16px;
+  }
+  .shelf-continue-cover {
+    width: 64px;
+    height: 92px;
+    flex-basis: 64px;
+  }
+  .shelf-continue-progress {
+    width: 88px;
+    flex-basis: 88px;
+  }
+  .shelf-continue-copy h3 {
+    font-size: 18px;
+  }
+}
+
+/* 书架分类筛选 */
+.shelf-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 16px;
+}
+
+.shelf-cats-label {
+  margin-right: 4px;
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+}
+
+.shelf-cats button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 29px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: all 140ms var(--ease-out);
+}
+
+.shelf-cats button:hover {
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
+.shelf-cats button[data-active] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fffdf8;
+}
+
+.shelf-cats button span {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+/* 书卡上的分类标签 */
+.book-card-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.book-card-cats span {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent-tint);
+  color: var(--accent);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+}
+
+.shelf-cats button[data-empty] {
+  opacity: 0.42;
+}
+
+.shelf-cats button[data-empty]:hover {
+  opacity: 0.75;
+}
+
+.shelf-brand-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(43, 38, 32, 0.16);
+}
+
+/* 分类行末尾的管理入口 */
+.shelf-cats-manage {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 9px;
+  height: 26px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  border: 1px dashed var(--line-strong);
+  transition: color 120ms, border-color 120ms, background-color 120ms;
+}
+.shelf-cats-manage:hover {
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--accent-tint);
+}
+
+/* 导入入口：书架上唯一的一处，主按钮进文件，右侧小按钮进整个文件夹 */
+.shelf-import {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+.shelf-import-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 13px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--surface);
+  background: var(--accent);
+  transition: background-color 130ms, transform 130ms;
+}
+.shelf-import-main:hover {
+  background: var(--accent-hover);
+}
+.shelf-import-main:active {
+  transform: scale(0.98);
+}
+.shelf-import-dir {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  border: 1px solid var(--line-strong);
+  transition: color 130ms, border-color 130ms, background-color 130ms;
+}
+.shelf-import-dir:hover {
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--accent-tint);
+}
+
+/* 书架上的次级管理入口：分类 */
+.shelf-import-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: color 130ms, border-color 130ms, background-color 130ms;
+}
+.shelf-import-secondary:hover {
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--accent-tint);
+}

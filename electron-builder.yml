@@ -1,0 +1,26 @@
+appId: com.moqi.reader
+productName: 墨栖
+copyright: Copyright © 2026 Moqi
+
+directories:
+  output: out-app
+  buildResources: build
+
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - package.json
+  - '!**/*.map'
+
+# 不用 asar：避免无签名环境下 asar 完整性校验拒绝加载
+asar: false
+
+extraResources:
+  - from: build/icon.ico
+    to: icon.ico
+
+win:
+  icon: build/icon.ico
+  signAndEditExecutable: false
+
+npmRebuild: false
