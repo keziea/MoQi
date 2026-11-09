@@ -21,8 +21,6 @@ import type { BookFormat, BookMeta } from '@shared/models';
 type Filter = 'all' | 'reading' | 'finished' | 'unread';
 type Sort = 'recent' | 'title';
 
-/** 书架只需要管理书籍分类，笔记分类的计数用不到 */
-const EMPTY_COUNTS = new Map<string, number>();
 
 interface ShelfProps {
   onOpen: (bookId: string) => void;
@@ -269,8 +267,7 @@ export function Shelf({ onOpen, embedded = false }: ShelfProps) {
                 <CategoryManager
                   open={catMgrOpen}
                   onClose={() => setCatMgrOpen(false)}
-                  tab="book"
-                  noteCounts={EMPTY_COUNTS}
+                  kind="book"
                   onChanged={() => {}}
                 />
 

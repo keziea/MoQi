@@ -49,6 +49,9 @@ export interface MoqiApi {
     save(note: Note): Promise<Note>;
     remove(bookId: string, noteId: string): Promise<boolean>;
     export(bookId: string): Promise<string>;
+    exportAll(
+      mode: 'single' | 'folder'
+    ): Promise<{ ok: boolean; count?: number; path?: string; error?: string; canceled?: boolean }>;
   };
   category: {
     rename(

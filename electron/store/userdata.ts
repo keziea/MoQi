@@ -232,6 +232,12 @@ export function getBookStats(): Record<string, { seconds: number; notes: number 
   return out;
 }
 
+/** 全书库的所有笔记（导出用） */
+export function getAllNotes(): Note[] {
+  const map = readJson<NotesMap>(paths.notes(), {});
+  return Object.values(map).flat();
+}
+
 export function getAllNotesCount(): number {
   const notesMap = readJson<NotesMap>(paths.notes(), {});
   return Object.values(notesMap).reduce((sum, l) => sum + l.length, 0);

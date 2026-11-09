@@ -370,7 +370,7 @@ export function Workspace({ section, onSection, onOpen }: Props) {
       <CategoryManager
         open={!!catMgr}
         onClose={() => setCatMgr(null)}
-        tab={catMgr ?? 'book'}
+        kind={catMgr ?? 'book'}
         noteCounts={noteCounts}
         onChanged={() => void loadNotes()}
       />

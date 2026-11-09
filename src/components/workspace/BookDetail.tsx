@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/Button';
 import { FinishedCelebration, type FinishedSummary } from './FinishedCelebration';
 import { CategoryManager } from './CategoryManager';
 
-const EMPTY_COUNTS = new Map<string, number>();
 
 interface Props {
   meta: BookMeta;
@@ -337,8 +336,7 @@ export function BookDetail({ meta, progress, stats, onRead, onClose }: Props) {
     <CategoryManager
       open={catMgr}
       onClose={() => setCatMgr(false)}
-      tab="book"
-      noteCounts={EMPTY_COUNTS}
+      kind="book"
       onChanged={() => {}}
     />
     </>

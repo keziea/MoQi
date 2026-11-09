@@ -34,6 +34,7 @@ import {
   getProgress,
   getSettings,
   getBookStats,
+  getAllNotes,
   getFinishedSummary,
   getStats,
   resetBookToday,
@@ -301,6 +302,89 @@ export function registerIpc(): void {
   ipcMain.handle('note:export', (_e, { bookId }) => {
     const meta = readLibrary().find((b) => b.id === bookId);
     return exportNotes(bookId, meta?.title ?? bookId);
+  });
+
+  /** 导出全部笔记：一个 Markdown，或每条一个文件 */
+  ipcMain.handle('note:exportAll', async (_e, { mode }: { mode: 'single' | 'folder' }) => {
+    const notes = getAllNotes();
+    if (!notes.length) return { ok: false, error: '还没有笔记可以导出' };
+
+    const books = readLibrary();
+    const titleOf = (id: string) => books.find((b) => b.id === id)?.title ?? '未知书籍';
+    const day = new Date();
+    const stamp = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+    const dateText = (t: number) => {
+      const d = new Date(t);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
+    const body = (n: Note) => {
+      const lines: string[] = [];
+      if (n.title) lines.push(`### ${n.title}`, '');
+      lines.push(`> ${n.text.replace(/\n+/g, ' ').trim()}`, '');
+      if (n.comment.trim()) lines.push(n.comment.trim(), '');
+      const meta = [n.category, dateText(n.createdAt)].filter(Boolean).join(' · ');
+      if (meta) lines.push(`*${meta}*`, '');
+      return lines.join('\n');
+    };
+
+    if (mode === 'single') {
+      const r = await dialog.showSaveDialog(mainWindow!, {
+        title: '导出全部笔记',
+        defaultPath: path.join(app.getPath('documents'), `墨栖笔记-${stamp}.md`),
+        filters: [{ name: 'Markdown 文件', extensions: ['md'] }],
+      });
+      if (r.canceled || !r.filePath) return { ok: false, canceled: true };
+
+      const byBook = new Map<string, Note[]>();
+      for (const n of notes) {
+        const list = byBook.get(n.bookId) ?? [];
+        list.push(n);
+        byBook.set(n.bookId, list);
+      }
+
+      const out: string[] = ['# 墨栖 · 全部笔记', '', `> 导出于 ${stamp} · 共 ${notes.length} 条`, ''];
+      for (const [bookId, list] of byBook) {
+        out.push(`## ${titleOf(bookId)}`, '');
+        const byChapter = new Map<string, Note[]>();
+        for (const n of [...list].sort((a, b) => a.createdAt - b.createdAt)) {
+          const key = n.chapterTitle || '未命名章节';
+          const arr = byChapter.get(key) ?? [];
+          arr.push(n);
+          byChapter.set(key, arr);
+        }
+        for (const [chapter, arr] of byChapter) {
+          out.push(`### ${chapter}`, '');
+          for (const n of arr) out.push(body(n));
+        }
+      }
+      fs.writeFileSync(r.filePath, out.join('\n'), 'utf8');
+      return { ok: true, count: notes.length, path: r.filePath };
+    }
+
+    const r = await dialog.showOpenDialog(mainWindow!, {
+      title: '选择笔记导出的文件夹',
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    if (r.canceled || !r.filePaths[0]) return { ok: false, canceled: true };
+
+    const dir = r.filePaths[0];
+    const used = new Set<string>();
+    for (const n of notes) {
+      const base = `${titleOf(n.bookId)}-${n.chapterTitle || '未命名'}-${n.title || n.text.slice(0, 10)}`
+        .replace(/[\\/:*?"<>|\s]+/g, '_')
+        .slice(0, 60);
+      let name = `${base}.md`;
+      let i = 2;
+      while (used.has(name)) name = `${base}-${i++}.md`;
+      used.add(name);
+      fs.writeFileSync(
+        path.join(dir, name),
+        `# ${titleOf(n.bookId)}\n\n## ${n.chapterTitle || '未命名章节'}\n\n${body(n)}`,
+        'utf8'
+      );
+    }
+    return { ok: true, count: notes.length, path: dir };
   });
 
   // ─── 会话与统计 ───

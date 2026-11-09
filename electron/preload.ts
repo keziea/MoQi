@@ -28,6 +28,7 @@ const api = {
     remove: (bookId: string, noteId: string) =>
       ipcRenderer.invoke('note:remove', { bookId, noteId }),
     export: (bookId: string) => ipcRenderer.invoke('note:export', { bookId }),
+    exportAll: (mode: 'single' | 'folder') => ipcRenderer.invoke('note:exportAll', { mode }),
   },
   category: {
     rename: (kind: 'book' | 'note', from: string, to: string) =>

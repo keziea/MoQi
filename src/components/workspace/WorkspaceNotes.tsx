@@ -7,6 +7,7 @@ import { useSettings } from '@/store/useSettings';
 import type { WorkspaceNote } from '@/lib/workspace';
 import { copyText } from '@/lib/workspace';
 import { toast } from '@/lib/toast';
+import { ipc } from '@/lib/ipc';
 
 interface Props {
   notes: WorkspaceNote[];
@@ -16,35 +17,12 @@ interface Props {
   onManageCategories: () => void;
 }
 
-function noteMarkdown(notes: WorkspaceNote[]): string {
-  const byBook = new Map<string, WorkspaceNote[]>();
-  for (const note of notes) {
-    const list = byBook.get(note.bookTitle) ?? [];
-    list.push(note);
-    byBook.set(note.bookTitle, list);
-  }
-  const lines = ['# 墨栖 · 全部笔记', ''];
-  for (const [book, list] of byBook) {
-    lines.push(`## ${book}`, '');
-    let chapter = '';
-    for (const note of [...list].sort((a, b) => a.createdAt - b.createdAt)) {
-      if (note.chapterTitle !== chapter) {
-        chapter = note.chapterTitle;
-        lines.push(`### ${chapter}`, '');
-      }
-      lines.push(`> ${note.text.replace(/\n+/g, ' ').trim()}`, '');
-      if (note.comment.trim()) lines.push(note.comment.trim(), '');
-      lines.push(`*${formatDate(note.createdAt)}*`, '');
-    }
-  }
-  return lines.join('\n');
-}
-
 export function WorkspaceNotes({ notes, loading, onOpenNote, onOpenLibrary, onManageCategories }: Props) {
   const [query, setQuery] = useState('');
   const [bookFilter, setBookFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [copied, setCopied] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportBusy, setExportBusy] = useState<'single' | 'folder' | null>(null);
 
   const noteCats = useSettings((s) => s.settings.noteCategories ?? DEFAULT_NOTE_CATEGORIES);
   const colorOf = (name?: string) => {
@@ -110,16 +88,20 @@ export function WorkspaceNotes({ notes, loading, onOpenNote, onOpenLibrary, onMa
   const thisWeek = notes.filter((n) => Date.now() - n.createdAt < 7 * 86400000).length;
   const notedBooks = new Set(notes.map((n) => n.bookId)).size;
 
-  const exportAll = async () => {
-    if (!notes.length) return;
-    const ok = await copyText(noteMarkdown(notes));
-    if (!ok) {
-      toast('复制失败，请稍后再试');
-      return;
+  const runExport = async (mode: 'single' | 'folder') => {
+    setExportBusy(mode);
+    try {
+      const res = await ipc.note.exportAll(mode);
+      if (res.ok) {
+        toast(`已导出 ${res.count ?? 0} 条笔记`);
+        setExportOpen(false);
+        if (mode === 'folder' && res.path) void ipc.app.openPath(res.path);
+      } else if (!res.canceled) {
+        toast(res.error ?? '导出失败');
+      }
+    } finally {
+      setExportBusy(null);
     }
-    setCopied(true);
-    toast(`已复制 ${notes.length} 条笔记`);
-    window.setTimeout(() => setCopied(false), 1800);
   };
 
   return (
@@ -137,9 +119,14 @@ export function WorkspaceNotes({ notes, loading, onOpenNote, onOpenLibrary, onMa
             <Icon name="pen" size={16} />
             管理分类
           </button>
-          <button className="ws-btn ws-btn-quiet" type="button" onClick={exportAll} disabled={!notes.length}>
-            <Icon name={copied ? 'check' : 'export'} size={16} />
-            {copied ? '已复制' : '复制全部笔记'}
+          <button
+            className="ws-btn ws-btn-quiet"
+            type="button"
+            onClick={() => setExportOpen(true)}
+            disabled={!notes.length}
+          >
+            <Icon name="export" size={16} />
+            导出全部笔记
           </button>
         </div>
       </header>
