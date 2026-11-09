@@ -17,7 +17,7 @@ interface Props {
   onSwitchFormat: (format: BookFormat) => void;
 }
 
-export function BookCard({ meta, ratio, copies = 1, formats: formatsProp, onOpen, onSwitchFormat }: Props) {
+export function BookCard({ meta, ratio, status, copies = 1, formats: formatsProp, onOpen, onSwitchFormat }: Props) {
   const cover = coverUrl(meta);
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -36,7 +36,10 @@ export function BookCard({ meta, ratio, copies = 1, formats: formatsProp, onOpen
   }, [menuOpen]);
 
   const percent = status === 'finished' ? 100 : Math.round(Math.max(0, Math.min(1, ratio)) * 100);
-  const finished = status === 'finished';
+  // 父组件没传 status 时自己兜底，别让书卡永远显示「未读」
+  const fallbackStatus: ReadStatus = ratio > 0 ? 'reading' : 'unread';
+  const resolvedStatus: ReadStatus = status ?? fallbackStatus;
+  const finished = resolvedStatus === 'finished';
   const cats = meta.categories ?? [];
   const formats =
     formatsProp && formatsProp.length
@@ -87,9 +90,9 @@ export function BookCard({ meta, ratio, copies = 1, formats: formatsProp, onOpen
           <div className="book-card-author-row">
             <div className="book-card-author">{meta.author || '佚名'}</div>
             <span className="book-percent">
-              {status === 'finished'
+              {resolvedStatus === 'finished'
                 ? '已读完'
-                : status === 'reading'
+                : resolvedStatus === 'reading'
                   ? percent > 0
                     ? formatPercent(percent / 100)
                     : '在读'

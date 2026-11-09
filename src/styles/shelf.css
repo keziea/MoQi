@@ -1021,3 +1021,13 @@
   border-color: var(--accent-line);
   background: var(--accent-tint);
 }
+
+/* 「未分类」是一个特殊分组：虚线框，和普通分类区分开 */
+.shelf-cat-none {
+  outline: 1px dashed var(--line-strong);
+  outline-offset: -1px;
+}
+.shelf-cat-none[data-active] {
+  outline-style: solid;
+  outline-color: var(--accent-line);
+}

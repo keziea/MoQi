@@ -46,6 +46,11 @@ export function Shelf({ onOpen, embedded = false }: ShelfProps) {
   const [sort, setSort] = useState<Sort>('recent');
   const [catMgrOpen, setCatMgrOpen] = useState(false);
 
+  // 每次进书架都重新拉一次进度：从阅读页回来时，书卡状态必须是新的
+  useEffect(() => {
+    void useLibrary.getState().refreshProgress();
+  }, []);
+
   const groups = useMemo(() => groupBooks(books, progressMap), [books, progressMap]);
 
   /** 同一本书可能有多个格式副本，进度可能记在任意一个 id 上 */
@@ -249,6 +254,18 @@ export function Shelf({ onOpen, embedded = false }: ShelfProps) {
                     全部
                     <span>{groups.length}</span>
                   </button>
+                  {categoryList.unclassified > 0 && (
+                    <button
+                      type="button"
+                      className="shelf-cat-none"
+                      data-active={catFilter === '__none__' || undefined}
+                      onClick={() => setCatFilter('__none__')}
+                      title="没有归到任何分类的书"
+                    >
+                      未分类
+                      <span>{categoryList.unclassified}</span>
+                    </button>
+                  )}
                   {categoryList.all.map(({ name, count }) => (
                     <button
                       key={name}
@@ -261,18 +278,7 @@ export function Shelf({ onOpen, embedded = false }: ShelfProps) {
                       <span>{count}</span>
                     </button>
                   ))}
-                  {categoryList.unclassified > 0 && (
-                    <button
-                      type="button"
-                      data-active={catFilter === '__none__' || undefined}
-                      onClick={() => setCatFilter('__none__')}
-                    >
-                      未分类
-                      <span>{categoryList.unclassified}</span>
-                    </button>
-                  )}
                 </div>
-
                 <CategoryManager
                   open={catMgrOpen}
                   onClose={() => setCatMgrOpen(false)}
