@@ -15,7 +15,7 @@
 [![React](https://img.shields.io/badge/React-18-61dafb?style=flat-square&logo=react&logoColor=white)](#)
 [![Offline](https://img.shields.io/badge/100%25%20%E6%9C%AC%E5%9C%B0-%E4%B8%8D%E8%81%94%E7%BD%91-5b8266?style=flat-square)](#)
 
-**GitHub** · https://github.com/keziea/MoQi 　|　 **Gitee** · https://gitee.com/azs_A/ink-residence
+**GitHub** · https://github.com/keziea/MoQi 　|　 **Gitee** · https://gitee.com/azs_A/MoQi
 
 <img src="docs/screenshots/05-home.png" alt="墨栖工作台" width="100%" />
 
@@ -125,8 +125,8 @@
 
 | 版本 | 下载 |
 |---|---|
-| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[点此下载](https://gitee.com/azs_A/ink-residence/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe)** |
-| **解压版**　66MB　不装进系统，解压就用 | 👉 **[点此下载](https://gitee.com/azs_A/ink-residence/releases/download/v0.3.0/Moqi-0.3.0-portable.7z)** |
+| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe)** |
+| **解压版**　66MB　不装进系统，解压就用 | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.3.0/Moqi-0.3.0-portable.7z)** |
 
 **🌍 国外用户（GitHub）**
 
@@ -143,7 +143,7 @@
 > 放到 D 盘一个英文名的文件夹最稳，例如 `D:\Moqi`。
 
 **想看源码、或者找历史版本？**
-[GitHub 仓库](https://github.com/keziea/MoQi) ｜ [Gitee 仓库](https://gitee.com/azs_A/ink-residence)
+[GitHub 仓库](https://github.com/keziea/MoQi) ｜ [Gitee 仓库](https://gitee.com/azs_A/MoQi)
 
 ### 二、第一次用，三步就会
 
@@ -175,7 +175,7 @@ git --version    # 显示 git version 2.x 就对了
 ```bash
 # 1. 下载源码（两个地址内容一样，国内用 Gitee 更快）
 git clone https://github.com/keziea/MoQi.git moqi
-# git clone https://gitee.com/azs_A/ink-residence.git moqi
+# git clone https://gitee.com/azs_A/MoQi.git moqi
 
 cd moqi
 
