@@ -121,12 +121,19 @@
 
 ### 一、下载（点蓝字，直接开始下载）
 
-| 版本 | 🇨🇳 国内用 Gitee（快） | 🌍 国外用 GitHub |
-|---|---|---|
-| **安装版**　76MB<br>装进电脑，桌面有图标　**← 推荐** | 👉 **[下载安装版](https://gitee.com/azs_A/ink-residence/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe)** | 👉 **[下载安装版](https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe)** |
-| **解压版**　66MB<br>不装进系统，解压就用 | 👉 **[下载解压版](https://gitee.com/azs_A/ink-residence/releases/download/v0.3.0/Moqi-0.3.0-portable.7z)** | 👉 **[下载解压版](https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-portable.7z)** |
+**🇨🇳 国内用户**
 
-**国内用户点左边那一列，国外用户点右边那一列**，两边文件完全一样。
+| 版本 | 下载 |
+|---|---|
+| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[Gitee 下载](https://gitee.com/azs_A/ink-residence/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe)**　或　[备用加速通道](https://ghproxy.net/https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe) |
+| **解压版**　66MB　不装进系统，解压就用 | 👉 **[Gitee 下载](https://gitee.com/azs_A/ink-residence/releases/download/v0.3.0/Moqi-0.3.0-portable.7z)**　或　[备用加速通道](https://ghproxy.net/https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-portable.7z) |
+
+**🌍 国外用户**
+
+| 版本 | 下载 |
+|---|---|
+| **安装版**　76MB　**← 推荐** | 👉 **[GitHub 下载](https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe)** |
+| **解压版**　66MB | 👉 **[GitHub 下载](https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-portable.7z)** |
 
 > **不知道怎么选？下安装版。** 双击 → 一直点「下一步」→ 桌面上出现「墨栖」图标，以后从桌面打开就行。
 >
@@ -134,8 +141,10 @@
 >
 > ⚠️ 解压版**别放在中文名字的文件夹里**（比如「我的书」「新建文件夹」），可能打不开。
 > 放到 D 盘一个英文名的文件夹最稳，例如 `D:\Moqi`。
+>
+> 💡 国内同学如果 Gitee 那条暂时打不开，点旁边的「备用加速通道」，走的是 GitHub 镜像，一样能下。
 
-**想看源码、或者要历史版本？**
+**想看源码、或者找历史版本？**
 [GitHub 仓库](https://github.com/keziea/MoQi) ｜ [Gitee 仓库](https://gitee.com/azs_A/ink-residence)
 
 ### 二、第一次用，三步就会
@@ -269,9 +278,10 @@ moqi-reader/
 │   ├── store/           zustand 状态
 │   └── styles/          按页面拆分的样式
 ├── shared/              主进程与界面共用的类型定义
-├── docs/                设计文档（从 00 开始读）
+├── download/            安装包（Releases 发布时从这里取）
+├── docs/                设计文档与界面截图
 ├── build/               图标等打包资源
-└── scripts/             构建与截图脚本
+└── scripts/             构建、截图、生成示例书
 ```
 
 技术栈：**Electron 33 + Vite 6 + React 18 + TypeScript 5 + Tailwind 3 + zustand 5 + framer-motion**
