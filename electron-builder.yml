@@ -24,3 +24,9 @@ win:
   signAndEditExecutable: false
 
 npmRebuild: false
+
+# 只打中英文语言包。Electron 默认带 55 个语言包共 41MB，
+# 中文用户用不到，砍掉后安装包与绿色版都能压进 Gitee 的 100MB 附件上限。
+electronLanguages:
+  - zh-CN
+  - en-US
