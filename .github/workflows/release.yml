@@ -1,44 +1,26 @@
-name: 打包并发布
+name: 发布安装包
 
-# 注意：本工作流目前【只支持手动触发】。
-# 原因：在 GitHub 的 Windows 服务器上执行 electron-builder 打包会在 NSIS 环节失败
-#       （本机打包完全正常，CI 上的具体报错无法从外部获取），暂时关闭自动运行，
-#       改为在本地 `npm run dist` 打包后手动上传到 Releases。
-# 以后若修好，把下面的 workflow_dispatch 恢复成同时监听 `push: tags: ['v*']` 即可。
+# 本工作流只做一件事：把仓库 download/ 目录里已经打好的安装包，
+# 发布到 GitHub Releases，供别人点开就下载。
+# 不做编译、不做打包，所以不会受 electron-builder 在 CI 上的问题影响。
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
 
 jobs:
   release:
-    runs-on: windows-latest
-    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
-      - name: 取出源码
+      - name: 取出仓库文件
         uses: actions/checkout@v4
-
-      - name: 准备 Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: 安装依赖
-        run: npm install --no-audit --no-fund
-
-      - name: 打包（安装版 + 绿色版目录）
-        run: npm run dist
-
-      - name: 把绿色版目录压成 zip
-        shell: pwsh
-        run: |
-          # 用系统 tar 而不是 Compress-Archive：后者会把中文文件名（墨栖.exe）丢掉
-          tar -a -c -f "out-app/Moqi-portable.zip" -C "out-app/win-unpacked" .
-          Write-Host "--- 打包产物 ---"
-          Get-ChildItem out-app -File | Select-Object Name, @{n='MB';e={[math]::Round($_.Length/1MB,1)}} | Format-Table -AutoSize
 
       - name: 发布到 Releases
         uses: softprops/action-gh-release@v2
@@ -46,25 +28,25 @@ jobs:
           name: 墨栖 ${{ github.ref_name }}
           draft: false
           prerelease: false
-          fail_on_unmatched_files: false
+          fail_on_unmatched_files: true
           body: |
             ## 下载哪一个？
 
             | 你的情况 | 下这个 |
             |---|---|
-            | **想装到电脑上长期用** | `墨栖 Setup ....exe` —— 双击，一直点「下一步」就行 |
-            | **不想安装，解压就想用** | `Moqi-portable.zip` —— 解压到任意文件夹，双击里面的 `墨栖.exe` |
+            | **想装到电脑上长期用（推荐）** | `Moqi-0.3.0-Setup.exe` — 双击，一直点「下一步」 |
+            | **不想安装，解压就想用** | `Moqi-0.3.0-portable.7z` — 用 WinRAR / 7-Zip / Bandizip 解压，双击里面的「墨栖.exe」 |
 
-            > 解压版**不要**放在中文路径下（例如「桌面/新建文件夹」可以，「我的书籍」这类中文目录请改用英文名），
-            > 否则程序可能打不开。这是 Electron 的老毛病。
+            > 解压版**不要**放在中文名字的文件夹里（例如「我的书」），否则可能打不开。
+            > 放到 `D:\Moqi` 这种纯英文路径最稳。
 
-            ## 第一次用，三步
+            ## 第一次用，三步就会
 
             1. 双击打开软件
-            2. 把书（EPUB / MOBI / PDF / TXT）**直接拖进窗口**，或者点右上角「导入书籍」
-            3. 点书封面的「阅读」
+            2. 把书（EPUB / MOBI / PDF / TXT）**直接拖进窗口**，或点右上角「导入书籍」
+            3. 点书的封面 → 点「阅读」
 
-            软件不联网、不需要注册。你的书和笔记都只存在自己电脑里。
+            软件不联网、不需要注册，书和笔记都只存在你自己电脑里。
           files: |
-            out-app/*Setup*.exe
-            out-app/Moqi-portable.zip
+            download/Moqi-0.3.0-Setup.exe
+            download/Moqi-0.3.0-portable.7z
