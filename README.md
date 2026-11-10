@@ -112,6 +112,9 @@
 ### 时间与数据
 底栏实时走秒，导航栏有大时钟；数据面板有「今日小结 / 本周 / 这本书 / 我的笔记」四种模板，一键复制成文字。
 
+### 数据带得走
+阅读进度、笔记、阅读时长能一键导出成一个文件夹，换电脑或重装系统时点「导入我的数据」选中它就行。导入只补不覆盖，重复导入也不会出现两份一样的笔记；导入前还会自动备份一份原数据。
+
 ### 眼睛不累
 四套主题：纸白 / 米黄 / 护眼绿 / 夜间。字号 14–32、行距 4 档、字体宋 / 黑 / 楷、版心 5 档，随手就调。
 
@@ -125,15 +128,15 @@
 
 | 版本 | 下载 |
 |---|---|
-| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe)** |
-| **解压版**　66MB　不装进系统，解压就用 | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.3.0/Moqi-0.3.0-portable.7z)** |
+| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.4.0/Moqi-0.4.0-Setup.exe)** |
+| **解压版**　66MB　不装进系统，解压就用 | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.4.0/Moqi-0.4.0-portable.7z)** |
 
 **🌍 国外用户（GitHub）**
 
 | 版本 | 下载 |
 |---|---|
-| **安装版**　76MB　**← 推荐** | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe)** |
-| **解压版**　66MB | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-portable.7z)** |
+| **安装版**　76MB　**← 推荐** | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.4.0/Moqi-0.4.0-Setup.exe)** |
+| **解压版**　66MB | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.4.0/Moqi-0.4.0-portable.7z)** |
 
 > **不知道怎么选？下安装版。** 双击 → 一直点「下一步」→ 桌面上出现「墨栖」图标，以后从桌面打开就行。
 >
