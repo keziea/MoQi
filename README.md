@@ -276,7 +276,7 @@ moqi-reader/
 │   ├── store/           zustand 状态
 │   └── styles/          按页面拆分的样式
 ├── shared/              主进程与界面共用的类型定义
-├── download/            安装包（Releases 发布时从这里取）
+├── release/             发布目录：已打包的安装版与解压版，发行版附件从这里取
 ├── docs/                设计文档与界面截图
 ├── build/               图标等打包资源
 └── scripts/             构建、截图、生成示例书

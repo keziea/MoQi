@@ -12,7 +12,6 @@ Thumbs.db
 
 # 打包中间产物与临时目录
 out-*/
-release/
 _待删除/
 .tmp/
 

@@ -1,6 +1,6 @@
 name: 发布安装包
 
-# 本工作流只做一件事：把仓库 download/ 目录里已经打好的安装包，
+# 本工作流只做一件事：把仓库 release/ 目录里已经打好的安装包，
 # 发布到 GitHub Releases，供别人点开就下载。
 # 不做编译、不做打包，所以不会受 electron-builder 在 CI 上的问题影响。
 
@@ -48,5 +48,5 @@ jobs:
 
             软件不联网、不需要注册，书和笔记都只存在你自己电脑里。
           files: |
-            download/Moqi-0.3.0-Setup.exe
-            download/Moqi-0.3.0-portable.7z
+            release/Moqi-0.3.0-Setup.exe
+            release/Moqi-0.3.0-portable.7z
