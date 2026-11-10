@@ -86,6 +86,12 @@
 
 <img src="docs/screenshots/06-analysis.png" alt="阅读统计" width="100%" />
 
+### 阅读记录：把坐下来读书的日子收好
+
+一年热力图 + 按天时间线，每天读了哪本书、多久，一目了然。
+
+<img src="docs/screenshots/07-history.png" alt="阅读记录" width="100%" />
+
 ---
 
 ## 功能一览
