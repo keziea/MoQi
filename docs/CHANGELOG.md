@@ -5,6 +5,41 @@
 
 ---
 
+## 2026-11-11 · 让「下载下来就能改代码」真正成立（构建 · 文档）
+
+### 为什么要做
+
+要求是：刷机、把本地删干净，只要从 GitHub / Gitee 下载，就能完整改代码、编译、打包。**光有源码文件不够**，必须实测「干净克隆 → 装依赖 → 编译 → 打包」整条链路，能跑通才算数。
+
+实测踩到三个真问题：
+
+- **`npm install` 会失败**：直连 GitHub 下载 Electron 二进制时 `ECONNRESET`，安装中断，`node_modules/electron` 留下空壳，之后报 `Electron failed to install correctly`。国内网络下几乎必然踩到。
+- `package.json` 没有声明 Node 版本要求，用户不知道装哪个版本。
+- `scripts/pack.js` 的绿色版**输出目录写死成工作区顶层的 `Moqi/`**，会再次污染目录、和旧版混淆；且 exe 版本信息硬编码为 `0.1.6`，与实际版本不符。
+
+### 改了什么
+
+- **新增** `.npmrc`：Electron 运行时与 electron-builder 打包工具走 `npmmirror` 国内镜像，`npm install` 开箱即用；文件内注释说明国外网络可删掉。
+- **新增** `package.json` 的 `engines`：`node >= 20`、`npm >= 9`。
+- **修复** `scripts/pack.js`：
+  - 输出目录改为 `~/Moqi-portable`（项目外、纯英文），支持 `MOQI_PACK_DIR` 覆盖；不再往工作区顶层吐东西。
+  - exe 版本信息改为从 `package.json` 读取，不再硬编码 `0.1.6`。
+- **文档** `README.md`「我想改这个软件」整节重写：Node 版本、真实耗时、镜像说明、命令表、**改完代码怎么发新版的 6 步流程**、4 类常见报错对照表。
+
+### 实测结果（干净克隆 → 全流程）
+
+| 步骤 | 结果 |
+|---|---|
+| `git clone` | 123 个文件 ✓ |
+| `npm install` | 首次因 Electron 下载被重置失败；加镜像后 **20 秒**补齐 ✓ |
+| `npm run build` | TypeScript + Vite 全通过，`dist/` + `dist-electron/` 正常 ✓ |
+| `npm run dist` | **42 秒**产出 `墨栖 Setup 0.3.0.exe`（76.5MB）✓ |
+| Electron 版本 | `33.4.11`，与 `package.json` 一致 ✓ |
+
+### 牵连
+
+只让构建链在国内网络下可靠，不改任何运行时逻辑与界面。已发布的 v0.3.0 安装包不受影响。
+
 ## 2026-11-11 · Gitee 仓库改名，全站链接统一为 `azs_A/MoQi`（文档 · 不改功能）
 
 ### 发生了什么

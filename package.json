@@ -24,6 +24,10 @@
     "chinese",
     "阅读器"
   ],
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  },
   "main": "dist-electron/electron/main.js",
   "scripts": {
     "dev": "npm run build:electron && concurrently -k -n VITE,ELECTRON -c cyan,yellow \"vite\" \"wait-on tcp:5173 && npm run start:electron\"",

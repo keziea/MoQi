@@ -15,10 +15,16 @@ const os = require('node:os');
 const ROOT = path.resolve(__dirname, '..');
 const APP_NAME = '墨栖';
 const BUILD_DIR = path.join(os.tmpdir(), 'moqi-build');
-// 必须放在项目目录之外、且路径不含中文：
-// 这台机器上 Electron 从「中文目录」或「本项目目录」内启动会直接退出（exit=3），
-// 项目外同级英文目录则完全正常。
-const FINAL_DIR = path.resolve(ROOT, '..', 'Moqi');
+const VERSION = require(path.join(ROOT, 'package.json')).version;
+const VERSION4 = `${VERSION}.0`;
+
+// 输出目录必须在项目之外，且路径不含中文：
+// 这台机器上 Electron 从「中文目录」或「本项目目录」内启动会直接退出（exit=3）。
+// 早期版本默认输出到工作区顶层的 Moqi/，既污染目录、又容易和旧版混淆（已废弃）。
+// 现在默认放到用户目录下的 Moqi-portable，可用环境变量 MOQI_PACK_DIR 覆盖。
+const FINAL_DIR = process.env.MOQI_PACK_DIR
+  ? path.resolve(process.env.MOQI_PACK_DIR)
+  : path.join(os.homedir(), 'Moqi-portable');
 
 function log(msg) {
   process.stdout.write(`  ${msg}\n`);
@@ -73,7 +79,7 @@ function safeRemove(target) {
   if (rcedit && fs.existsSync(exePath) && fs.existsSync(icon)) {
     try {
       execSync(
-        `"${rcedit}" "${exePath}" --set-icon "${icon}" --set-file-version 0.1.6.0 --set-product-version 0.1.6 --set-version-string ProductName "${APP_NAME}" --set-version-string FileDescription "${APP_NAME} · 中文阅读器" --set-version-string CompanyName Moqi`,
+        `"${rcedit}" "${exePath}" --set-icon "${icon}" --set-file-version ${VERSION4} --set-product-version ${VERSION} --set-version-string ProductName "${APP_NAME}" --set-version-string FileDescription "${APP_NAME} · 中文阅读器" --set-version-string CompanyName Moqi`,
         { stdio: 'ignore' }
       );
       log('图标已写入');

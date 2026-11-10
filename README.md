@@ -156,44 +156,72 @@
 
 ### 三、我想改这个软件（懂技术的人看）
 
-先装两个工具，只装一次：
+> 这一节写给「要改代码、自己打包」的人。只想用软件的话，上面两条就够了。
+
+**先装两个工具（只装一次）**
 
 | 工具 | 干什么用 | 去哪下载 |
 |---|---|---|
-| **Node.js 20 LTS** | 让电脑能运行这个项目 | https://nodejs.org/zh-cn |
+| **Node.js 20 LTS 或更高** | 让电脑能运行、编译这个项目 | https://nodejs.org/zh-cn |
 | **Git** | 把源码下载到本机 | https://git-scm.com/download/win |
 
-装完按 `Win + R`，输入 `cmd` 回车，检查是否装好：
+装完按 `Win + R` → 输入 `cmd` → 回车，检查：
 
 ```bash
-node -v          # 显示 v20.x 或更高就对了
+node -v          # 显示 v20.x / v22.x 就对了（最低 20）
 git --version    # 显示 git version 2.x 就对了
 ```
 
-然后把源码下载下来运行：
+**把源码拿下来，跑起来**
 
 ```bash
-# 1. 下载源码（两个地址内容一样，国内用 Gitee 更快）
+# 1. 下载源码（两个地址内容完全一样，国内用 Gitee 更快）
 git clone https://github.com/keziea/MoQi.git moqi
 # git clone https://gitee.com/azs_A/MoQi.git moqi
 
 cd moqi
 
-# 2. 安装运行需要的东西（第一次约 1-2 分钟）
+# 2. 安装依赖（第一次约 2-4 分钟，含 Electron 约 100MB）
 npm install
 
-# 3. 启动
+# 3. 启动开发模式
 npm run dev
 ```
 
-窗口会自动弹出来。改代码、保存，界面立刻跟着变，不用重启。
+窗口会自动弹出。改代码、保存，界面立刻刷新，不用重启。
 
-想自己打包成 exe：
+> **国内网络说明**：仓库已自带 `.npmrc`，Electron 运行时和打包工具会自动走国内镜像。
+> 如果仍然卡在下载 Electron，删掉 `node_modules\electron` 文件夹再 `npm install` 一次即可。
 
-```bash
-npm run dist    # 安装版，输出在 out-app 文件夹
-npm run pack    # 解压版
-```
+**常用命令**
+
+| 命令 | 作用 |
+|---|---|
+| `npm run dev` | 开发模式，改代码即时生效 |
+| `npm run build` | 编译一次，输出到 `dist/` 与 `dist-electron/` |
+| `npm run dist` | 打 Windows 安装包，输出 `out-app\墨栖 Setup <版本>.exe` |
+| `npm run pack` | 打免安装绿色版，输出到用户目录 `Moqi-portable\`（可用环境变量 `MOQI_PACK_DIR` 改） |
+| `npm run typecheck` | 只做类型检查，不产出文件 |
+
+**改完代码，怎么发一个新版本**
+
+1. 改 `package.json` 里的 `version`（例如 `0.3.0` → `0.3.1`），`CHANGELOG.md` 记一笔
+2. `npm run dist`，产物在 `out-app\`
+3. 把 `out-app\墨栖 Setup 0.3.1.exe` 复制到 `release\`，**改名为** `Moqi-0.3.1-Setup.exe`
+4. 用 7-Zip 把 `out-app\win-unpacked\` 压成 `release\Moqi-0.3.1-portable.7z`（LZMA2、极限压缩）
+5. 提交代码，打 tag：`git tag v0.3.1` → `git push --tags`
+6. 到 GitHub / Gitee 的 Releases 上传这两个文件（同 tag、同文件名、同说明）
+
+> 打包排错见 `docs/09-构建与发布.md`。
+
+**遇到问题**
+
+| 现象 | 原因 | 解决 |
+|---|---|---|
+| `Electron failed to install correctly` | Electron 二进制没下完 | 删 `node_modules\electron`，重新 `npm install` |
+| `npm install` 卡在 electron 不动 | 直连 GitHub 被重置 | 确认 `.npmrc` 存在；或临时设 `ELECTRON_MIRROR` |
+| 打包报 `EBUSY` / 文件无法删除 | 杀毒软件锁住了文件 | 把项目目录加入杀毒白名单，或临时关实时防护 |
+| `npm run dev` 起不来 | 5173 端口被占用 | 关掉占用程序，或改 `vite.config.mts` 里的端口 |
 
 ## 支持的格式
 
