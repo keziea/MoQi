@@ -124,7 +124,13 @@ function upload(uploadUrl, file) {
   let release = null;
   try {
     release = await api('GET', `/repos/${OWNER}/${REPO}/releases/tags/${TAG}`);
-    console.log(`  已存在 Release #${release.id}，将复用并补传附件`);
+    // Actions 自动发布时 body 来自 workflow 模板，会和 docs/releases/ 不一致；
+    // 这里统一覆盖成发布说明原文，保证 GitHub 与 Gitee 逐字相同。
+    release = await api('PATCH', `/repos/${OWNER}/${REPO}/releases/${release.id}`, {
+      name: `墨栖 ${TAG}`,
+      body: BODY,
+    });
+    console.log(`  已存在 Release #${release.id}，说明已同步为 docs/releases/${TAG}.md`);
   } catch {
     release = await api('POST', `/repos/${OWNER}/${REPO}/releases`, {
       tag_name: TAG,

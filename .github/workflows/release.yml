@@ -29,24 +29,9 @@ jobs:
           draft: false
           prerelease: false
           fail_on_unmatched_files: true
-          body: |
-            ## 下载哪一个？
-
-            | 你的情况 | 下这个 |
-            |---|---|
-            | **想装到电脑上长期用（推荐）** | `Moqi-0.3.0-Setup.exe` — 双击，一直点「下一步」 |
-            | **不想安装，解压就想用** | `Moqi-0.3.0-portable.7z` — 用 WinRAR / 7-Zip / Bandizip 解压，双击里面的「墨栖.exe」 |
-
-            > 解压版**不要**放在中文名字的文件夹里（例如「我的书」），否则可能打不开。
-            > 放到 `D:\Moqi` 这种纯英文路径最稳。
-
-            ## 第一次用，三步就会
-
-            1. 双击打开软件
-            2. 把书（EPUB / MOBI / PDF / TXT）**直接拖进窗口**，或点右上角「导入书籍」
-            3. 点书的封面 → 点「阅读」
-
-            软件不联网、不需要注册，书和笔记都只存在你自己电脑里。
+          # 说明文字直接取 docs/releases/v<版本>.md，保证仓库、GitHub、Gitee 三处逐字相同。
+          # 文件不存在时这一步会失败 —— 正好逼着发版前先把发布说明写好。
+          body_path: docs/releases/${{ github.ref_name }}.md
           files: |
             release/Moqi-*-Setup.exe
             release/Moqi-*-portable.7z
