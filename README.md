@@ -125,8 +125,10 @@
 
 | 版本 | 下载 |
 |---|---|
-| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[Gitee 下载](https://gitee.com/azs_A/ink-residence/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe)**　或　[备用加速通道](https://ghproxy.net/https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe) |
-| **解压版**　66MB　不装进系统，解压就用 | 👉 **[Gitee 下载](https://gitee.com/azs_A/ink-residence/releases/download/v0.3.0/Moqi-0.3.0-portable.7z)**　或　[备用加速通道](https://ghproxy.net/https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-portable.7z) |
+| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[点此下载](https://ghproxy.net/https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe)** |
+| **解压版**　66MB　不装进系统，解压就用 | 👉 **[点此下载](https://ghproxy.net/https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-portable.7z)** |
+
+> 这两个链接走国内加速节点，实测速度正常，浏览器会直接开始下载。
 
 **🌍 国外用户**
 
@@ -141,8 +143,6 @@
 >
 > ⚠️ 解压版**别放在中文名字的文件夹里**（比如「我的书」「新建文件夹」），可能打不开。
 > 放到 D 盘一个英文名的文件夹最稳，例如 `D:\Moqi`。
->
-> 💡 国内同学如果 Gitee 那条暂时打不开，点旁边的「备用加速通道」，走的是 GitHub 镜像，一样能下。
 
 **想看源码、或者找历史版本？**
 [GitHub 仓库](https://github.com/keziea/MoQi) ｜ [Gitee 仓库](https://gitee.com/azs_A/ink-residence)
