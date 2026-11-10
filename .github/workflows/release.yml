@@ -48,5 +48,5 @@ jobs:
 
             软件不联网、不需要注册，书和笔记都只存在你自己电脑里。
           files: |
-            release/Moqi-0.3.0-Setup.exe
-            release/Moqi-0.3.0-portable.7z
+            release/Moqi-*-Setup.exe
+            release/Moqi-*-portable.7z
