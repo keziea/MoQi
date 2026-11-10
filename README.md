@@ -121,21 +121,19 @@
 
 ### 一、下载（点蓝字，直接开始下载）
 
-**🇨🇳 国内用户**
+**🇨🇳 国内用户（Gitee，速度快）**
 
 | 版本 | 下载 |
 |---|---|
-| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[点此下载](https://ghproxy.net/https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe)** |
-| **解压版**　66MB　不装进系统，解压就用 | 👉 **[点此下载](https://ghproxy.net/https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-portable.7z)** |
+| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[点此下载](https://gitee.com/azs_A/ink-residence/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe)** |
+| **解压版**　66MB　不装进系统，解压就用 | 👉 **[点此下载](https://gitee.com/azs_A/ink-residence/releases/download/v0.3.0/Moqi-0.3.0-portable.7z)** |
 
-> 这两个链接走国内加速节点，实测速度正常，浏览器会直接开始下载。
-
-**🌍 国外用户**
+**🌍 国外用户（GitHub）**
 
 | 版本 | 下载 |
 |---|---|
-| **安装版**　76MB　**← 推荐** | 👉 **[GitHub 下载](https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe)** |
-| **解压版**　66MB | 👉 **[GitHub 下载](https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-portable.7z)** |
+| **安装版**　76MB　**← 推荐** | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe)** |
+| **解压版**　66MB | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-portable.7z)** |
 
 > **不知道怎么选？下安装版。** 双击 → 一直点「下一步」→ 桌面上出现「墨栖」图标，以后从桌面打开就行。
 >
