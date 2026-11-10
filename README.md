@@ -119,12 +119,14 @@
 
 ## 快速开始
 
-### 一、直接下载（点下面的蓝字，立刻开始下载）
+### 一、下载（点蓝字，直接开始下载）
 
-| 下哪个 | 点这里 |
-|---|---|
-| **安装版** ← 推荐<br>76MB · 装进电脑，桌面有图标 | 👉 **[下载 墨栖 0.3.0 安装版](https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe)** |
-| **解压版**<br>66MB · 不装进系统，解压就用 | 👉 **[下载 墨栖 0.3.0 解压版](https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-portable.7z)** |
+| 版本 | 🇨🇳 国内用 Gitee（快） | 🌍 国外用 GitHub |
+|---|---|---|
+| **安装版**　76MB<br>装进电脑，桌面有图标　**← 推荐** | 👉 **[下载安装版](https://gitee.com/azs_A/ink-residence/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe)** | 👉 **[下载安装版](https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-Setup.exe)** |
+| **解压版**　66MB<br>不装进系统，解压就用 | 👉 **[下载解压版](https://gitee.com/azs_A/ink-residence/releases/download/v0.3.0/Moqi-0.3.0-portable.7z)** | 👉 **[下载解压版](https://github.com/keziea/MoQi/releases/download/v0.3.0/Moqi-0.3.0-portable.7z)** |
+
+**国内用户点左边那一列，国外用户点右边那一列**，两边文件完全一样。
 
 > **不知道怎么选？下安装版。** 双击 → 一直点「下一步」→ 桌面上出现「墨栖」图标，以后从桌面打开就行。
 >
@@ -133,7 +135,8 @@
 > ⚠️ 解压版**别放在中文名字的文件夹里**（比如「我的书」「新建文件夹」），可能打不开。
 > 放到 D 盘一个英文名的文件夹最稳，例如 `D:\Moqi`。
 
-全部版本和更新记录在这里：<https://github.com/keziea/MoQi/releases>
+**想看源码、或者要历史版本？**
+[GitHub 仓库](https://github.com/keziea/MoQi) ｜ [Gitee 仓库](https://gitee.com/azs_A/ink-residence)
 
 ### 二、第一次用，三步就会
 
