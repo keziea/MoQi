@@ -54,6 +54,11 @@ const api = {
     get: () => ipcRenderer.invoke('settings:get'),
     save: (patch: unknown) => ipcRenderer.invoke('settings:save', patch),
   },
+  data: {
+    counts: () => ipcRenderer.invoke('data:counts'),
+    export: () => ipcRenderer.invoke('data:export'),
+    import: () => ipcRenderer.invoke('data:import'),
+  },
   app: {
     info: () => ipcRenderer.invoke('app:info'),
     openDataDir: () => ipcRenderer.invoke('app:openDataDir'),

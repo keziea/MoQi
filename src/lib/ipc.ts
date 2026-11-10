@@ -23,6 +23,26 @@ export interface AppInfoLite {
   exeDir: string;
 }
 
+export interface DataCounts {
+  books: number;
+  notes: number;
+  days: number;
+  sessions: number;
+}
+
+export type DataExportResult =
+  | { ok: true; dir: string; counts: DataCounts }
+  | { ok: false; canceled?: boolean; detail?: string };
+
+export type DataImportResult =
+  | { ok: true; counts: DataCounts; merged: DataCounts; backupDir: string; source: string }
+  | {
+      ok: false;
+      canceled?: boolean;
+      reason?: 'not-moqi-data' | 'empty' | 'read-error';
+      detail?: string;
+    };
+
 export interface MoqiApi {
   library: {
     list(): Promise<BookMeta[]>;
@@ -84,6 +104,11 @@ export interface MoqiApi {
   settings: {
     get(): Promise<Settings>;
     save(patch: Partial<Settings>): Promise<Settings>;
+  };
+  data: {
+    counts(): Promise<DataCounts>;
+    export(): Promise<DataExportResult>;
+    import(): Promise<DataImportResult>;
   };
   app: {
     info(): Promise<AppInfoLite>;

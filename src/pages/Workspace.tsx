@@ -18,6 +18,7 @@ import { WorkspaceHistory } from '@/components/workspace/WorkspaceHistory';
 import { BookDetail } from '@/components/workspace/BookDetail';
 import { NoteDetail } from '@/components/workspace/NoteDetail';
 import { CategoryManager } from '@/components/workspace/CategoryManager';
+import { DataBackup } from '@/components/workspace/DataBackup';
 import { NOTE_CATEGORY_FALLBACK } from '@shared/models';
 import logoUrl from '@/assets/logo.png';
 
@@ -49,6 +50,7 @@ const SECTION_TITLE: Record<WorkspaceSection, string> = {
 
 export function Workspace({ section, onSection, onOpen }: Props) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [dataOpen, setDataOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [noteId, setNoteId] = useState<string | null>(null);
   const [catMgr, setCatMgr] = useState<'book' | 'note' | null>(null);
@@ -66,6 +68,7 @@ export function Workspace({ section, onSection, onOpen }: Props) {
   const settings = useSettings((s) => s.settings);
   const update = useSettings((s) => s.update);
   const todaySeconds = useStats((s) => s.todaySeconds);
+  const refreshProgress = useLibrary((s) => s.refreshProgress);
 
   const groups = useMemo(() => groupBooks(books, progressMap), [books, progressMap]);
 
@@ -110,6 +113,14 @@ export function Workspace({ section, onSection, onOpen }: Props) {
   useEffect(() => {
     void loadNotes();
   }, [loadNotes]);
+
+  // 导入个人数据后，进度 / 笔记 / 统计都要重新读一遍，界面才不会停在旧数字
+  const reloadAfterImport = useCallback(() => {
+    void refreshProgress();
+    void loadNotes();
+    ipc.stats.get(120).then(setStats).catch(() => {});
+    void useStats.getState().init();
+  }, [refreshProgress, loadNotes]);
 
   useEffect(() => {
     let alive = true;
@@ -242,7 +253,7 @@ export function Workspace({ section, onSection, onOpen }: Props) {
             <Icon name="settings" size={17} />
             <span>设置</span>
           </button>
-          <span className="ws-version">v0.3</span>
+          <span className="ws-version">v0.4</span>
         </div>
       </aside>
 
@@ -273,6 +284,15 @@ export function Workspace({ section, onSection, onOpen }: Props) {
             <span className="ws-local">
               <i /> 本地 · 不联网
             </span>
+            <button
+              className="ws-icon-btn"
+              type="button"
+              onClick={() => setDataOpen(true)}
+              aria-label="数据备份与恢复"
+              title="数据备份与恢复"
+            >
+              <Icon name="import" size={17} />
+            </button>
             <button className="ws-icon-btn" type="button" onClick={() => ipc.app.openDataDir()} aria-label="打开数据文件夹">
               <Icon name="folder" size={17} />
             </button>
@@ -380,6 +400,12 @@ export function Workspace({ section, onSection, onOpen }: Props) {
         onClose={() => setSettingsOpen(false)}
         settings={settings}
         update={update}
+      />
+
+      <DataBackup
+        open={dataOpen}
+        onClose={() => setDataOpen(false)}
+        onImported={reloadAfterImport}
       />
     </div>
   );

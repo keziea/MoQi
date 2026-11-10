@@ -28,7 +28,9 @@ import {
 import { loadBookContent, titleFromFileName } from '../parsers';
 import {
   addSession,
+  countUserData,
   exportNotes,
+  exportUserData,
   getAllNotesCount,
   getAllProgress,
   getProgress,
@@ -37,6 +39,7 @@ import {
   getAllNotes,
   getFinishedSummary,
   getStats,
+  importUserData,
   resetBookToday,
   getTotals,
   listNotes,
@@ -429,6 +432,37 @@ export function registerIpc(): void {
   ipcMain.handle('app:openDataDir', async () => {
     await shell.openPath(paths.data());
     return true;
+  });
+
+  // ── 个人数据备份与恢复（只动 data/user/，不碰书籍与书架）──
+  ipcMain.handle('data:counts', () => countUserData());
+
+  ipcMain.handle('data:export', async () => {
+    const options: Electron.OpenDialogOptions = {
+      title: '选择保存位置',
+      buttonLabel: '导出到这里',
+      properties: ['openDirectory', 'createDirectory'],
+    };
+    const picked = mainWindow
+      ? await dialog.showOpenDialog(mainWindow, options)
+      : await dialog.showOpenDialog(options);
+    const target = picked.filePaths[0];
+    if (picked.canceled || !target) return { ok: false, canceled: true };
+    return exportUserData(target, app.getVersion());
+  });
+
+  ipcMain.handle('data:import', async () => {
+    const options: Electron.OpenDialogOptions = {
+      title: '选择包含个人数据的文件夹',
+      buttonLabel: '开始导入',
+      properties: ['openDirectory'],
+    };
+    const picked = mainWindow
+      ? await dialog.showOpenDialog(mainWindow, options)
+      : await dialog.showOpenDialog(options);
+    const source = picked.filePaths[0];
+    if (picked.canceled || !source) return { ok: false, canceled: true };
+    return importUserData(source);
   });
 
   ipcMain.handle('app:openPath', async (_e, p: string) => {

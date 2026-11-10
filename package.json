@@ -1,6 +1,6 @@
 {
   "name": "moqi-reader",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "墨栖 · Windows 桌面中文阅读器",
   "author": "Moqi",
@@ -36,6 +36,7 @@
     "build:renderer": "vite build",
     "build": "npm run build:electron && npm run build:renderer",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test:data": "npm run build:electron && node scripts/run-electron-script.js scripts/test-userdata.js",
     "dist": "npm run build && electron-builder --win",
     "pack": "node scripts/pack.js"
   },
