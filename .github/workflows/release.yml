@@ -1,16 +1,12 @@
 name: 打包并发布
 
-# 打一个 v 开头的标签（如 v0.3.0）就会自动：
-#   1. 在 GitHub 的 Windows 服务器上安装依赖
-#   2. 打包出「安装版 exe」和「绿色版 zip」
-#   3. 创建 Release 并把两个文件挂上去，供任何人下载
-#
-# 也可以在网页 Actions 页手动点「Run workflow」触发。
+# 注意：本工作流目前【只支持手动触发】。
+# 原因：在 GitHub 的 Windows 服务器上执行 electron-builder 打包会在 NSIS 环节失败
+#       （本机打包完全正常，CI 上的具体报错无法从外部获取），暂时关闭自动运行，
+#       改为在本地 `npm run dist` 打包后手动上传到 Releases。
+# 以后若修好，把下面的 workflow_dispatch 恢复成同时监听 `push: tags: ['v*']` 即可。
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
 
 permissions:
