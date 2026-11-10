@@ -128,17 +128,17 @@
 
 | 版本 | 下载 |
 |---|---|
-| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.4.0/Moqi-0.4.0-Setup.exe)** |
-| **解压版**　66MB　不装进系统，解压就用 | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.4.0/Moqi-0.4.0-portable.7z)** |
+| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.4.1/Moqi-0.4.1-Setup.exe)** |
+| **解压版**　66MB　不装进系统，解压就用 | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.4.1/Moqi-0.4.1-portable.7z)** |
 
 **🌍 国外用户（GitHub）**
 
 | 版本 | 下载 |
 |---|---|
-| **安装版**　76MB　**← 推荐** | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.4.0/Moqi-0.4.0-Setup.exe)** |
-| **解压版**　66MB | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.4.0/Moqi-0.4.0-portable.7z)** |
+| **安装版**　76MB　**← 推荐** | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.4.1/Moqi-0.4.1-Setup.exe)** |
+| **解压版**　66MB | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.4.1/Moqi-0.4.1-portable.7z)** |
 
-> **不知道怎么选？下安装版。** 双击 → 一直点「下一步」→ 桌面上出现「墨栖」图标，以后从桌面打开就行。
+> **不知道怎么选？下安装版。** 双击后会出现安装向导，**可以自己选装到哪个盘、哪个文件夹** —— 默认位置藏在 `C:\Users\你的用户名\AppData\Local\Programs\` 里，不好找，建议在向导里改成 `D:\Moqi` 这种一眼能看到的地方。然后是桌面图标，以后从桌面打开。
 >
 > 解压版需要用 WinRAR / 7-Zip / Bandizip 解压（都是免费软件），解压后双击里面的「墨栖.exe」。
 >

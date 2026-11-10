@@ -30,3 +30,21 @@ npmRebuild: false
 electronLanguages:
   - zh-CN
   - en-US
+
+# ── Windows 安装器 ──
+# 默认的一键安装（oneClick）会把程序直接塞进
+# C:\Users\<用户名>\AppData\Local\Programs\moqi-reader，
+# 用户既不能选装到哪个盘，也找不到装哪去了。
+# 这里改成标准安装向导：可以选目录、选文件夹名，装完再创建快捷方式。
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  allowElevation: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: 墨栖
+  # 产物直接叫 Moqi-0.4.1-Setup.exe，省掉手工改名，也保证与 README 链接一致
+  artifactName: Moqi-${version}-Setup.${ext}
+  # 卸载时保留 %APPDATA%\moqi-reader —— 进度、笔记、统计都在里面，不能跟着程序一起删
+  deleteAppDataOnUninstall: false

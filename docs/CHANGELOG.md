@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-11-11 · v0.4.1 安装器改为可选路径（修复）
+
+### 问题
+
+v0.4.0 的 `electron-builder.yml` **没有 `nsis` 段**，electron-builder 走默认值 `oneClick: true` —— 一键安装、不给选路径，直接装进 `C:\Users\<用户名>\AppData\Local\Programs\moqi-reader`。用户既不能换盘，也找不到装哪了。
+
+更糟的是 `docs/09` 里其实早就写了 `oneClick: false` + `allowToChangeInstallationDirectory: true`，但实际配置文件从来没同步 —— 文档与实现脱节，属于流程问题，不是笔误。
+
+### 改动
+
+- `electron-builder.yml` 新增 `nsis` 段：`oneClick: false`、`allowToChangeInstallationDirectory: true`、`perMachine: false`、`allowElevation: true`、桌面与开始菜单快捷方式、`shortcutName: 墨栖`。
+- 新增 `artifactName: Moqi-${version}-Setup.${ext}`：产物直接叫 `Moqi-0.4.1-Setup.exe`，不再需要手工改名，也不会和 README 链接对不上。
+- 新增 `deleteAppDataOnUninstall: false`：卸载只删程序，保留 `%APPDATA%\moqi-reader` 里的进度、笔记、统计。
+- `README.md` 安装说明改写：明确写「向导里可以选盘和文件夹」，并建议放 `D:\Moqi`。
+- `docs/09` 补全配置示例，新增第 5-7 条注意事项（为什么必须成对写、artifactName 的作用、卸载不能删数据）。
+
+### 牵连
+
+只改打包行为，**运行时代码零改动**。v0.4.0 的安装包仍留在 Release 里可回溯，但引导用户装 0.4.1。
+
 ## 2026-11-11 · v0.4.0 个人数据可以带走（新增功能）
 
 ### 一句话
