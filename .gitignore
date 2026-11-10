@@ -34,3 +34,7 @@ generated-images/
 *.mobi
 *.azw3
 *.azw
+
+# 示例书生成产物与截图临时数据（随时可用脚本重新生成）
+.sample-books/
+.userData/

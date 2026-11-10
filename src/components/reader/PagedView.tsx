@@ -222,8 +222,12 @@ export const PagedView = memo(
     const report = useCallback(() => {
       if (!readyRef.current) return;
       const anchor = resolveAnchor();
-      const chars = blockCharsRef.current.get(anchor.blockId) ?? 0;
-      const ratio = totalCharsRef.current ? chars / totalCharsRef.current : 0;
+      // 章节标题块不在字数索引里（blocks 只收正文段），当锚点正好落在标题上时
+      // 查不到累计字数，会让全书进度变成 0%。此时按页码比例兜底。
+      const base = blockCharsRef.current.get(anchor.blockId);
+      const byPage = totalRef.current > 1 ? (pageRef.current - 1) / totalRef.current : 0;
+      const chars = base && base > 0 ? base : byPage * totalCharsRef.current;
+      const ratio = totalCharsRef.current ? Math.min(1, chars / totalCharsRef.current) : 0;
       const sig = `${pageRef.current}|${totalRef.current}|${anchor.blockId}`;
       if (sig === lastReportRef.current) return;
       lastReportRef.current = sig;
