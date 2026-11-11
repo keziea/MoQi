@@ -128,15 +128,15 @@
 
 | 版本 | 下载 |
 |---|---|
-| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.4.1/Moqi-0.4.1-Setup.exe)** |
-| **解压版**　66MB　不装进系统，解压就用 | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.4.1/Moqi-0.4.1-portable.7z)** |
+| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.4.2/Moqi-0.4.2-Setup.exe)** |
+| **解压版**　66MB　不装进系统，解压就用 | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.4.2/Moqi-0.4.2-portable.7z)** |
 
 **🌍 国外用户（GitHub）**
 
 | 版本 | 下载 |
 |---|---|
-| **安装版**　76MB　**← 推荐** | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.4.1/Moqi-0.4.1-Setup.exe)** |
-| **解压版**　66MB | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.4.1/Moqi-0.4.1-portable.7z)** |
+| **安装版**　76MB　**← 推荐** | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.4.2/Moqi-0.4.2-Setup.exe)** |
+| **解压版**　66MB | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.4.2/Moqi-0.4.2-portable.7z)** |
 
 > **不知道怎么选？下安装版。** 双击后会出现安装向导，**可以自己选装到哪个盘、哪个文件夹** —— 默认位置藏在 `C:\Users\你的用户名\AppData\Local\Programs\` 里，不好找，建议在向导里改成 `D:\Moqi` 这种一眼能看到的地方。然后是桌面图标，以后从桌面打开。
 >

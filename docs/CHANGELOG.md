@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-11-11 · v0.4.2 修复图标不一致（修复）
+
+### 问题
+
+用户反馈：桌面图标是墨栖的，打开软件后却是另一个图标。
+
+根因是 `electron-builder.yml` 里的 `win.signAndEditExecutable: false`。这一行让 electron-builder **跳过 rcedit**，于是 exe 的图标资源、产品名、公司名、版本信息全部停留在 Electron 默认值。
+
+实测打包产物 `out-app\win-unpacked\墨栖.exe` 的版本信息：
+
+| 字段 | 实际值 | 应该是 |
+|---|---|---|
+| `ProductName` | `Electron` | `墨栖` |
+| `CompanyName` | `GitHub, Inc.` | `Moqi` |
+| `OriginalFilename` | `electron.exe` | `墨栖.exe` |
+| `FileVersion` | `33.4.11`（Electron 的版本） | `0.4.2` |
+
+桌面快捷方式由 NSIS 用 `build/icon.ico` 创建，所以桌面上看是对的；程序本身还是 Electron 默认图标 —— 两者自然对不上。
+
+### 改动
+
+- **删除** `win.signAndEditExecutable: false`，恢复 electron-builder 默认行为（调用 rcedit 写入图标与产品信息）。没有签名证书时它会自动跳过签名，不需要为了躲签名去关这个开关。
+- `docs/09` 新增第 8、9 条注意事项：为什么不能关这个开关，以及怎么验收图标真的写进去了。
+- 核验图标文件本身：`build/icon.ico` 含 7 个尺寸（16 / 24 / 32 / 48 / 64 / 128 / 256），256×256 为 32 位，文件合格。
+
+### 牵连
+
+只影响打包产物，不改运行时代码。升级后任务栏图标可能因 Windows 图标缓存需要重新固定一次；极端情况执行 `ie4uinit.exe -show` 刷新。
+
 ## 2026-11-11 · v0.4.1 安装器改为可选路径（修复）
 
 ### 问题

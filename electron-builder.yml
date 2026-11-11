@@ -21,7 +21,13 @@ extraResources:
 
 win:
   icon: build/icon.ico
+  # 关掉 electron-builder 自带的 exe 改写，改用 afterPack 自己调 rcedit：
+  # 自带实现依赖 winCodeSign 缓存包，包里含 macOS 符号链接，
+  # 普通 Windows 账户解压会因「客户端没有所需的特权」失败，导致打包中断。
+  # 图标与产品信息由 scripts/after-pack.js 统一写入。
   signAndEditExecutable: false
+
+afterPack: scripts/after-pack.js
 
 npmRebuild: false
 
