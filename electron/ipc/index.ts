@@ -12,7 +12,7 @@ import type {
   ReadingSession,
   Settings,
 } from '../../shared/models';
-import { paths, ensureDirs, logError } from '../store/paths';
+import { paths, ensureDirs, logError, DATA_FOLDER_NAME, defaultDataDir, getDataRootInfo } from '../store/paths';
 import {
   makeBookId,
   pickBest,
@@ -28,9 +28,7 @@ import {
 import { loadBookContent, titleFromFileName } from '../parsers';
 import {
   addSession,
-  countUserData,
   exportNotes,
-  exportUserData,
   getAllNotesCount,
   getAllProgress,
   getProgress,
@@ -39,7 +37,6 @@ import {
   getAllNotes,
   getFinishedSummary,
   getStats,
-  importUserData,
   resetBookToday,
   getTotals,
   listNotes,
@@ -50,12 +47,45 @@ import {
   saveProgress,
   saveSettings,
 } from '../store/userdata';
+import { defaultBackupName, exportBackup, getBackupStats, restoreBackup } from '../store/backup';
+import { planDataLocation, relocateData } from '../store/location';
 
 let mainWindow: BrowserWindow | null = null;
 let scanning = false;
 
 export function setMainWindow(win: BrowserWindow) {
   mainWindow = win;
+}
+
+/** 备份进度：窗口可能在长任务中途被关掉，send 之前先确认还活着 */
+function sendBackupProgress(payload: unknown): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  try {
+    mainWindow.webContents.send('backup:progress', payload);
+  } catch {
+    /* 窗口正在销毁，忽略 */
+  }
+}
+
+function sendLocationProgress(payload: unknown): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  try {
+    mainWindow.webContents.send('location:progress', payload);
+  } catch {
+    /* ignore */
+  }
+}
+
+let relaunchTimer: NodeJS.Timeout | null = null;
+
+/** 迁移完数据要重启，让所有模块按新路径重新初始化 */
+function scheduleRelaunch(): void {
+  if (relaunchTimer) return;
+  relaunchTimer = setTimeout(() => {
+    relaunchTimer = null;
+    app.relaunch();
+    app.exit(0);
+  }, 1400);
 }
 
 function defaultLibraryDirs(): string[] {
@@ -415,54 +445,184 @@ export function registerIpc(): void {
   ipcMain.handle('settings:save', (_e, patch: Partial<Settings>) => saveSettings(patch ?? {}));
 
   // ─── 应用 ───
-  ipcMain.handle('app:info', () => ({
-    version: app.getVersion(),
-    dataDir: paths.data(),
-    libraryDir: resolveDirs(getSettings())[0] ?? '',
-    documents: (() => {
-      try {
-        return app.getPath('documents');
-      } catch {
-        return '';
-      }
-    })(),
-    exeDir: app.isPackaged ? path.dirname(app.getPath('exe')) : app.getAppPath(),
-  }));
+  ipcMain.handle('app:info', () => {
+    const root = getDataRootInfo();
+    return {
+      version: app.getVersion(),
+      dataDir: paths.data(),
+      dataRoot: root.root,
+      isCustomDataRoot: root.isCustom,
+      unavailableDataRoot: root.unavailable ?? '',
+      defaultDataDir: defaultDataDir(),
+      dataFolderName: DATA_FOLDER_NAME,
+      libraryDir: resolveDirs(getSettings())[0] ?? '',
+      documents: (() => {
+        try {
+          return app.getPath('documents');
+        } catch {
+          return '';
+        }
+      })(),
+      exeDir: app.isPackaged ? path.dirname(app.getPath('exe')) : app.getAppPath(),
+    };
+  });
+
+  // ── 数据存放位置 ──
+  ipcMain.handle('location:info', () => {
+    const root = getDataRootInfo();
+    return {
+      root: root.root,
+      dataDir: root.dataDir,
+      isCustom: root.isCustom,
+      unavailable: root.unavailable ?? '',
+      folderName: DATA_FOLDER_NAME,
+      defaultDataDir: defaultDataDir(),
+    };
+  });
+
+  ipcMain.handle('location:change', async () => {
+    const picked = await dialog.showOpenDialog(mainWindow!, {
+      title: '选择数据存放位置',
+      buttonLabel: '选这里',
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    const parent = picked.filePaths[0];
+    if (picked.canceled || !parent) return { ok: false, canceled: true };
+
+    const plan = planDataLocation(parent);
+    if (plan.inside) {
+      await dialog.showMessageBox(mainWindow!, {
+        type: 'warning',
+        title: '这个位置不行',
+        message: '不能把数据放进当前的数据目录里',
+        detail: '请选择上一层，或者换一个磁盘。',
+        buttons: ['知道了'],
+      });
+      return { ok: false, reason: 'inside', detail: '不能放进当前数据目录' };
+    }
+    if (plan.same) {
+      await dialog.showMessageBox(mainWindow!, {
+        type: 'info',
+        title: '数据已经在这里',
+        message: `数据现在就存放在：\n${plan.dataDir}`,
+        buttons: ['知道了'],
+      });
+      return { ok: false, reason: 'same', root: plan.root, dataDir: plan.dataDir };
+    }
+    if (plan.conflict) {
+      await dialog.showMessageBox(mainWindow!, {
+        type: 'warning',
+        title: '这里有数据了',
+        message: `${plan.root} 里已经有一份墨栖的数据`,
+        detail: '为了不覆盖，请换一个位置。',
+        buttons: ['知道了'],
+      });
+      return { ok: false, reason: 'conflict', detail: '目标位置已有数据', root: plan.root };
+    }
+
+    const stats = getBackupStats();
+    const confirm = await dialog.showMessageBox(mainWindow!, {
+      type: 'question',
+      buttons: ['开始迁移', '取消'],
+      defaultId: 0,
+      cancelId: 1,
+      title: '更改数据位置',
+      message: `会在所选位置创建 ${DATA_FOLDER_NAME} 文件夹`,
+      detail: [
+        `数据目录：`,
+        plan.dataDir,
+        '',
+        `当前的 ${stats.shelf} 本书、${stats.notes} 条笔记、${stats.days} 天阅读记录会一起搬过去。`,
+        '完成后墨栖会自动重启，旧位置的数据会在下次启动时清理。',
+      ].join('\n'),
+    });
+    if (confirm.response !== 0) return { ok: false, canceled: true };
+
+    const result = await relocateData({ kind: 'custom', parent }, sendLocationProgress);
+    if (result.ok) scheduleRelaunch();
+    return result;
+  });
+
+  ipcMain.handle('location:reset', async () => {
+    const confirm = await dialog.showMessageBox(mainWindow!, {
+      type: 'question',
+      buttons: ['搬回默认位置', '取消'],
+      defaultId: 0,
+      cancelId: 1,
+      title: '恢复默认位置',
+      message: '要把数据搬回默认位置吗？',
+      detail: `默认位置：\n${defaultDataDir()}\n\n搬完墨栖会自动重启，旧位置的数据会在下次启动时清理。`,
+    });
+    if (confirm.response !== 0) return { ok: false, canceled: true };
+
+    const result = await relocateData({ kind: 'default' }, sendLocationProgress);
+    if (result.ok) {
+      scheduleRelaunch();
+    } else if (result.reason === 'conflict') {
+      await dialog.showMessageBox(mainWindow!, {
+        type: 'warning',
+        title: '默认位置还有一份数据',
+        message: `默认位置里已经有一份墨栖的数据：\n${defaultDataDir()}`,
+        detail: '为了不覆盖，这次没有搬。你可以先备份，再手动处理那个文件夹。',
+        buttons: ['知道了'],
+      });
+    }
+    return result;
+  });
 
   ipcMain.handle('app:openDataDir', async () => {
     await shell.openPath(paths.data());
     return true;
   });
 
-  // ── 个人数据备份与恢复（只动 data/user/，不碰书籍与书架）──
-  ipcMain.handle('data:counts', () => countUserData());
+  // ── 完整备份与恢复：书架 + 阅读数据 + 书文件，收进一个 zip ──
+  ipcMain.handle('backup:info', () => getBackupStats());
 
-  ipcMain.handle('data:export', async () => {
-    const options: Electron.OpenDialogOptions = {
-      title: '选择保存位置',
-      buttonLabel: '导出到这里',
-      properties: ['openDirectory', 'createDirectory'],
-    };
-    const picked = mainWindow
-      ? await dialog.showOpenDialog(mainWindow, options)
-      : await dialog.showOpenDialog(options);
-    const target = picked.filePaths[0];
-    if (picked.canceled || !target) return { ok: false, canceled: true };
-    return exportUserData(target, app.getVersion());
+  ipcMain.handle('backup:export', async (_e, opts?: { includeBooks?: boolean }) => {
+    let documents = '';
+    try {
+      documents = app.getPath('documents');
+    } catch {
+      documents = app.getPath('home');
+    }
+
+    const picked = await dialog.showSaveDialog(mainWindow!, {
+      title: '导出备份',
+      buttonLabel: '导出',
+      defaultPath: path.join(documents, defaultBackupName()),
+      filters: [{ name: 'ZIP 压缩包', extensions: ['zip'] }],
+    });
+    if (picked.canceled || !picked.filePath) return { ok: false, canceled: true };
+
+    const file = /\.zip$/i.test(picked.filePath) ? picked.filePath : `${picked.filePath}.zip`;
+    return exportBackup(file, { includeBooks: opts?.includeBooks !== false }, sendBackupProgress);
   });
 
-  ipcMain.handle('data:import', async () => {
-    const options: Electron.OpenDialogOptions = {
-      title: '选择包含个人数据的文件夹',
-      buttonLabel: '开始导入',
-      properties: ['openDirectory'],
-    };
+  ipcMain.handle('backup:import', async (_e, { mode }: { mode: 'zip' | 'folder' }) => {
+    const options: Electron.OpenDialogOptions =
+      mode === 'zip'
+        ? {
+            title: '选择备份压缩包',
+            buttonLabel: '开始恢复',
+            properties: ['openFile'],
+            filters: [
+              { name: 'ZIP 压缩包', extensions: ['zip'] },
+              { name: '全部文件', extensions: ['*'] },
+            ],
+          }
+        : {
+            title: '选择备份文件夹',
+            buttonLabel: '开始恢复',
+            properties: ['openDirectory'],
+          };
+
     const picked = mainWindow
       ? await dialog.showOpenDialog(mainWindow, options)
       : await dialog.showOpenDialog(options);
     const source = picked.filePaths[0];
     if (picked.canceled || !source) return { ok: false, canceled: true };
-    return importUserData(source);
+
+    return restoreBackup(source, sendBackupProgress);
   });
 
   ipcMain.handle('app:openPath', async (_e, p: string) => {

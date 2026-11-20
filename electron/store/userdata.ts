@@ -11,9 +11,6 @@ import { DEFAULT_SETTINGS } from '../../shared/models';
 import { paths } from './paths';
 import { readJson, writeJsonAtomic, writeTextAtomic } from './json';
 
-type ProgressMap = Record<string, Progress>;
-type NotesMap = Record<string, Note[]>;
-
 // ───────────────────────── 进度 ─────────────────────────
 
 export function getProgress(bookId: string): Progress | null {
@@ -304,14 +301,17 @@ export function saveSettings(patch: Partial<Settings>): Settings {
   return next;
 }
 
-// ───────────────────── 个人数据导入 / 导出 ─────────────────────
+// ───────────────────── 个人数据：读取 / 校验 / 合并 ─────────────────────
 //
-// 只搬 data/user/ 下的三个文件：progress / notes / sessions。
-// 书籍本体、书架索引、解析缓存都不动 —— 那些可以重新扫描生成。
+// 这里只关心「内容」：progress / notes / sessions 三个 json。
+// 打包成 zip、认文件夹、搬书文件，都是 backup.ts 的事。
 // 详细规则见 docs/03-数据模型与存储.md §7。
 
-const USER_FILES = ['progress.json', 'notes.json', 'sessions.json'] as const;
-type UserFile = (typeof USER_FILES)[number];
+export type ProgressMap = Record<string, Progress>;
+export type NotesMap = Record<string, Note[]>;
+
+export const USER_FILES = ['progress.json', 'notes.json', 'sessions.json'] as const;
+export type UserFile = (typeof USER_FILES)[number];
 
 export interface DataCounts {
   books: number;
@@ -320,25 +320,17 @@ export interface DataCounts {
   sessions: number;
 }
 
-export type ImportFailReason = 'not-moqi-data' | 'empty' | 'read-error';
-
-export type ImportResult =
-  | { ok: true; counts: DataCounts; merged: DataCounts; backupDir: string; source: string }
-  | { ok: false; canceled?: boolean; reason?: ImportFailReason; detail?: string };
-
-export type ExportResult =
-  | { ok: true; dir: string; counts: DataCounts }
-  | { ok: false; canceled?: boolean; detail?: string };
+export interface UserDataPayload {
+  progress: ProgressMap;
+  notes: NotesMap;
+  sessions: ReadingSession[];
+}
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0');
 }
 
-function dayStamp(d = new Date()): string {
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-}
-
-function minuteStamp(d = new Date()): string {
+export function minuteStamp(d = new Date()): string {
   return `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}-${pad2(d.getHours())}${pad2(d.getMinutes())}`;
 }
 
@@ -354,80 +346,16 @@ export function countUserData(): DataCounts {
   };
 }
 
-/** 导出：在用户选的目录里新建「墨栖个人数据-日期」，复制三个文件并写一份白话说明 */
-export function exportUserData(targetParent: string, appVersion: string): ExportResult {
-  try {
-    const date = dayStamp();
-    let dir = path.join(targetParent, `墨栖个人数据-${date}`);
-    let n = 2;
-    while (fs.existsSync(dir)) dir = path.join(targetParent, `墨栖个人数据-${date}-${n++}`);
-
-    fs.mkdirSync(dir, { recursive: true });
-
-    for (const file of USER_FILES) {
-      const src = path.join(paths.user(), file);
-      if (fs.existsSync(src)) fs.copyFileSync(src, path.join(dir, file));
-    }
-
-    const guide = [
-      '这是「墨栖」的个人阅读数据备份。',
-      `导出于 ${date} · 软件版本 ${appVersion}`,
-      '',
-      '怎么恢复：',
-      '1. 打开墨栖，点右上角「数据备份」按钮',
-      '2. 点「导入我的数据」',
-      '3. 选中这个文件夹（选它的上一层也可以），确定',
-      '4. 看到「个人数据导入成功」就好了',
-      '',
-      '请不要修改里面的 .json 文件。',
-      '',
-    ].join('\n');
-    writeTextAtomic(path.join(dir, '导入说明.txt'), guide);
-
-    return { ok: true, dir, counts: countUserData() };
-  } catch (err) {
-    return { ok: false, detail: err instanceof Error ? err.message : String(err) };
-  }
-}
-
-/** 在任意一层目录里找三个数据文件，最多向下 3 层 */
-function locateDataFiles(root: string): Partial<Record<UserFile, string>> {
-  const found: Partial<Record<UserFile, string>> = {};
-  const priorities = ['user', 'data', '墨栖个人数据'];
-
-  const visit = (dir: string, depth: number): void => {
-    if (depth > 3) return;
-    let entries: fs.Dirent[];
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-
-    for (const entry of entries) {
-      if (!entry.isFile()) continue;
-      const name = entry.name as UserFile;
-      if (USER_FILES.includes(name) && !found[name]) found[name] = path.join(dir, entry.name);
-    }
-
-    const dirs = entries
-      .filter((e) => e.isDirectory() && !e.name.startsWith('.') && e.name !== 'node_modules')
-      .sort((a, b) => {
-        const rank = (name: string): number => {
-          const i = priorities.findIndex((p) => name.startsWith(p));
-          return i < 0 ? priorities.length : i;
-        };
-        return rank(a.name) - rank(b.name);
-      });
-
-    for (const d of dirs) visit(path.join(dir, d.name), depth + 1);
+export function countPayload(payload: UserDataPayload): DataCounts {
+  return {
+    books: Object.keys(payload.progress).length,
+    notes: Object.values(payload.notes).reduce((sum, list) => sum + list.length, 0),
+    days: new Set(payload.sessions.map((s) => s.date)).size,
+    sessions: payload.sessions.length,
   };
-
-  visit(root, 0);
-  return found;
 }
 
-function isProgressMap(value: unknown): value is ProgressMap {
+export function isProgressMap(value: unknown): value is ProgressMap {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   return Object.values(value as Record<string, unknown>).every((item) => {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
@@ -442,7 +370,7 @@ function isProgressMap(value: unknown): value is ProgressMap {
   });
 }
 
-function isNotesMap(value: unknown): value is NotesMap {
+export function isNotesMap(value: unknown): value is NotesMap {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   return Object.values(value as Record<string, unknown>).every((list) => {
     if (!Array.isArray(list)) return false;
@@ -460,7 +388,7 @@ function isNotesMap(value: unknown): value is NotesMap {
   });
 }
 
-function isSessionList(value: unknown): value is ReadingSession[] {
+export function isSessionList(value: unknown): value is ReadingSession[] {
   if (!Array.isArray(value)) return false;
   return value.every((item) => {
     if (!item || typeof item !== 'object') return false;
@@ -475,122 +403,61 @@ function isSessionList(value: unknown): value is ReadingSession[] {
   });
 }
 
-function backupCurrentUserData(): string {
-  const dir = path.join(paths.user(), `_backup-${minuteStamp()}`);
-  fs.mkdirSync(dir, { recursive: true });
-  for (const file of USER_FILES) {
-    const src = path.join(paths.user(), file);
-    if (fs.existsSync(src)) fs.copyFileSync(src, path.join(dir, file));
-  }
-  return dir;
+/** 当前这台电脑上的个人数据（只读文件，不生成任何东西） */
+export function readUserDataPayload(): UserDataPayload {
+  return {
+    progress: readJson<ProgressMap>(paths.progress(), {}),
+    notes: readJson<NotesMap>(paths.notes(), {}),
+    sessions: readJson<ReadingSession[]>(paths.sessions(), []),
+  };
 }
 
-/** 导入：认任意一层目录，结构不合格就整包拒绝 */
-export function importUserData(sourceDir: string): ImportResult {
-  const located = locateDataFiles(sourceDir);
-  const hits = Object.values(located).filter(Boolean) as string[];
+/**
+ * 合并导入的个人数据 —— 只补不覆盖：
+ *  · progress：同一本书 updatedAt 新的胜出
+ *  · notes：按 note.id 去重，updatedAt 新的胜出
+ *  · sessions：按 session.id 去重
+ * 返回合并后的总量，给界面显示「现在一共多少」。
+ */
+export function mergeUserData(incoming: UserDataPayload): DataCounts {
+  const current = readUserDataPayload();
 
-  if (hits.length === 0) {
-    return {
-      ok: false,
-      reason: 'not-moqi-data',
-      detail: '没有找到 progress.json / notes.json / sessions.json',
-    };
+  const mergedProgress: ProgressMap = { ...current.progress };
+  for (const [bookId, item] of Object.entries(incoming.progress)) {
+    const old = mergedProgress[bookId];
+    if (!old || item.updatedAt > old.updatedAt) mergedProgress[bookId] = item;
   }
 
-  const incomingProgress: ProgressMap = {};
-  const incomingNotes: NotesMap = {};
-  const incomingSessions: ReadingSession[] = [];
-  let readError = '';
-
-  if (located['progress.json']) {
-    const raw = readJson<unknown>(located['progress.json'], null);
-    if (isProgressMap(raw)) Object.assign(incomingProgress, raw);
-    else if (raw === null) readError = 'progress.json';
-  }
-  if (located['notes.json']) {
-    const raw = readJson<unknown>(located['notes.json'], null);
-    if (isNotesMap(raw)) Object.assign(incomingNotes, raw);
-    else if (raw === null) readError = readError || 'notes.json';
-  }
-  if (located['sessions.json']) {
-    const raw = readJson<unknown>(located['sessions.json'], null);
-    if (isSessionList(raw)) incomingSessions.push(...raw);
-    else if (raw === null) readError = readError || 'sessions.json';
-  }
-
-  const incomingCounts: DataCounts = {
-    books: Object.keys(incomingProgress).length,
-    notes: Object.values(incomingNotes).reduce((sum, list) => sum + list.length, 0),
-    days: new Set(incomingSessions.map((s) => s.date)).size,
-    sessions: incomingSessions.length,
-  };
-
-  const hasAny = incomingCounts.books + incomingCounts.notes + incomingCounts.sessions > 0;
-  if (!hasAny) {
-    return {
-      ok: false,
-      reason: readError ? 'read-error' : 'empty',
-      detail: readError ? `${readError} 解析失败` : '三个文件都没有有效条目',
-    };
-  }
-
-  try {
-    const backupDir = backupCurrentUserData();
-
-    const currentProgress = readJson<ProgressMap>(paths.progress(), {});
-    const currentNotes = readJson<NotesMap>(paths.notes(), {});
-    const currentSessions = readJson<ReadingSession[]>(paths.sessions(), []);
-
-    const mergedProgress: ProgressMap = { ...currentProgress };
-    for (const [bookId, item] of Object.entries(incomingProgress)) {
-      const old = mergedProgress[bookId];
-      if (!old || item.updatedAt > old.updatedAt) mergedProgress[bookId] = item;
-    }
-
-    const mergedNotes: NotesMap = {};
-    for (const [bookId, list] of Object.entries(currentNotes)) mergedNotes[bookId] = [...list];
-    for (const [bookId, list] of Object.entries(incomingNotes)) {
-      const target = mergedNotes[bookId] ?? (mergedNotes[bookId] = []);
-      const index = new Map(target.map((n) => [n.id, n] as const));
-      for (const note of list) {
-        const old = index.get(note.id);
-        if (!old) {
-          target.push(note);
-          index.set(note.id, note);
-        } else if ((note.updatedAt ?? 0) > (old.updatedAt ?? 0)) {
-          target[target.indexOf(old)] = note;
-          index.set(note.id, note);
-        }
+  const mergedNotes: NotesMap = {};
+  for (const [bookId, list] of Object.entries(current.notes)) mergedNotes[bookId] = [...list];
+  for (const [bookId, list] of Object.entries(incoming.notes)) {
+    const target = mergedNotes[bookId] ?? (mergedNotes[bookId] = []);
+    const index = new Map(target.map((n) => [n.id, n] as const));
+    for (const note of list) {
+      const old = index.get(note.id);
+      if (!old) {
+        target.push(note);
+        index.set(note.id, note);
+      } else if ((note.updatedAt ?? 0) > (old.updatedAt ?? 0)) {
+        target[target.indexOf(old)] = note;
+        index.set(note.id, note);
       }
     }
-
-    const mergedSessions = [...currentSessions];
-    const seen = new Set(mergedSessions.map((s) => s.id));
-    for (const session of incomingSessions) {
-      if (!seen.has(session.id)) {
-        mergedSessions.push(session);
-        seen.add(session.id);
-      }
-    }
-    mergedSessions.sort((a, b) => a.startedAt - b.startedAt);
-
-    writeJsonAtomic(paths.progress(), mergedProgress);
-    writeJsonAtomic(paths.notes(), mergedNotes);
-    writeJsonAtomic(paths.sessions(), mergedSessions);
-
-    return {
-      ok: true,
-      counts: incomingCounts,
-      merged: countUserData(),
-      backupDir: path.basename(backupDir),
-      source: sourceDir,
-    };
-  } catch (err) {
-    return {
-      ok: false,
-      reason: 'read-error',
-      detail: err instanceof Error ? err.message : String(err),
-    };
   }
+
+  const mergedSessions = [...current.sessions];
+  const seen = new Set(mergedSessions.map((s) => s.id));
+  for (const session of incoming.sessions) {
+    if (!seen.has(session.id)) {
+      mergedSessions.push(session);
+      seen.add(session.id);
+    }
+  }
+  mergedSessions.sort((a, b) => a.startedAt - b.startedAt);
+
+  writeJsonAtomic(paths.progress(), mergedProgress);
+  writeJsonAtomic(paths.notes(), mergedNotes);
+  writeJsonAtomic(paths.sessions(), mergedSessions);
+
+  return countUserData();
 }

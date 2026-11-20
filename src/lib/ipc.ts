@@ -18,10 +18,42 @@ export interface ScanProgress {
 export interface AppInfoLite {
   version: string;
   dataDir: string;
+  dataRoot: string;
+  isCustomDataRoot: boolean;
+  unavailableDataRoot: string;
+  defaultDataDir: string;
+  dataFolderName: string;
   libraryDir: string;
   documents: string;
   exeDir: string;
 }
+
+export interface DataLocationInfo {
+  root: string;
+  dataDir: string;
+  isCustom: boolean;
+  unavailable: string;
+  /** 会自动创建的文件夹名，例如 MoQiReader */
+  folderName: string;
+  defaultDataDir: string;
+}
+
+export interface RelocateProgress {
+  done: number;
+  total: number;
+  bytes: number;
+}
+
+export type RelocateResult =
+  | { ok: true; root: string; dataDir: string; files: number; bytes: number }
+  | {
+      ok: false;
+      canceled?: boolean;
+      reason?: 'inside' | 'same' | 'conflict' | 'io';
+      detail?: string;
+      root?: string;
+      dataDir?: string;
+    };
 
 export interface DataCounts {
   books: number;
@@ -30,16 +62,59 @@ export interface DataCounts {
   sessions: number;
 }
 
-export type DataExportResult =
-  | { ok: true; dir: string; counts: DataCounts }
-  | { ok: false; canceled?: boolean; detail?: string };
+export interface BackupCounts extends DataCounts {
+  /** 书架上有多少本 */
+  shelf: number;
+}
 
-export type DataImportResult =
-  | { ok: true; counts: DataCounts; merged: DataCounts; backupDir: string; source: string }
+export interface BackupStats extends BackupCounts {
+  bookBytes: number;
+  recordBytes: number;
+  bookFiles: number;
+  lastBackupAt?: number;
+}
+
+export type BackupPhase = 'collect' | 'pack' | 'unpack' | 'books' | 'merge';
+
+export interface BackupProgress {
+  phase: BackupPhase;
+  done: number;
+  total: number;
+  name?: string;
+  bytes?: number;
+}
+
+export type BackupExportResult =
+  | {
+      ok: true;
+      file: string;
+      bytes: number;
+      counts: BackupCounts;
+      bookFiles: number;
+      skipped: string[];
+    }
+  | { ok: false; canceled?: boolean; detail?: string; reason?: 'too-large' | 'write-error' };
+
+export type BackupRestoreResult =
+  | {
+      ok: true;
+      sourceKind: 'zip' | 'folder';
+      source: string;
+      counts: BackupCounts;
+      merged: BackupCounts;
+      booksAdded: number;
+      booksUpdated: number;
+      booksSkipped: number;
+      bookFiles: number;
+      backupDir: string;
+      warnings: string[];
+      legacy: boolean;
+      includeBooks: boolean;
+    }
   | {
       ok: false;
       canceled?: boolean;
-      reason?: 'not-moqi-data' | 'empty' | 'read-error';
+      reason?: 'unsupported' | 'not-moqi-data' | 'empty' | 'read-error' | 'zip-error';
       detail?: string;
     };
 
@@ -105,10 +180,15 @@ export interface MoqiApi {
     get(): Promise<Settings>;
     save(patch: Partial<Settings>): Promise<Settings>;
   };
-  data: {
-    counts(): Promise<DataCounts>;
-    export(): Promise<DataExportResult>;
-    import(): Promise<DataImportResult>;
+  backup: {
+    info(): Promise<BackupStats>;
+    export(opts?: { includeBooks?: boolean }): Promise<BackupExportResult>;
+    import(mode: 'zip' | 'folder'): Promise<BackupRestoreResult>;
+  };
+  location: {
+    info(): Promise<DataLocationInfo>;
+    change(): Promise<RelocateResult>;
+    reset(): Promise<RelocateResult>;
   };
   app: {
     info(): Promise<AppInfoLite>;
@@ -121,6 +201,8 @@ export interface MoqiApi {
   };
   on: {
     scanProgress(cb: (p: ScanProgress) => void): () => void;
+    backupProgress(cb: (p: BackupProgress) => void): () => void;
+    locationProgress(cb: (p: RelocateProgress) => void): () => void;
   };
 }
 

@@ -235,6 +235,8 @@ export interface Settings {
   /** 笔记分类：名字 + 颜色，颜色全局唯一 */
   noteCategories?: NoteCategoryDef[];
   lastBookId?: string;
+  /** 上次导出备份的时间，用于在面板里提醒「多久没备份了」 */
+  lastBackupAt?: number;
   windowBounds?: { x: number; y: number; width: number; height: number };
   dataVersion: number;
 }

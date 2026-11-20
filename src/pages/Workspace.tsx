@@ -116,6 +116,8 @@ export function Workspace({ section, onSection, onOpen }: Props) {
 
   // 导入个人数据后，进度 / 笔记 / 统计都要重新读一遍，界面才不会停在旧数字
   const reloadAfterImport = useCallback(() => {
+    // 恢复备份会同时带来书、笔记、进度与统计，四样都要重新拉一遍
+    void useLibrary.getState().load();
     void refreshProgress();
     void loadNotes();
     ipc.stats.get(120).then(setStats).catch(() => {});

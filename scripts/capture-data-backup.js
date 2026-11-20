@@ -20,6 +20,8 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 function seed() {
   const dir = path.join(USERDATA, 'data', 'user');
   fs.mkdirSync(dir, { recursive: true });
+  const shelf = path.join(USERDATA, '书库');
+  fs.mkdirSync(shelf, { recursive: true });
 
   const books = [
     { id: 'b1', title: '山中来信' },
@@ -31,6 +33,29 @@ function seed() {
   const progress = {};
   const notes = {};
   const sessions = [];
+
+  // 造几本「真书」，让备份面板能显示真实体积，也让导出真的能跑
+  const library = books.map((b, i) => {
+    const file = path.join(shelf, `${b.title}.txt`);
+    fs.writeFileSync(file, `第一章\n${'山里的风从窗缝里进来。'.repeat(120)}`, 'utf8');
+    return {
+      id: b.id,
+      title: b.title,
+      author: ['林白', '陈年', '周野'][i],
+      format: 'txt',
+      variants: [{ format: 'txt', path: file, sizeBytes: fs.statSync(file).size, quality: 60 }],
+      totalChars: 2400,
+      chapterCount: 1,
+      addedAt: now - (i + 1) * 86400000,
+      lastOpenedAt: now - i * 3600000,
+      categories: [['文学'], ['历史'], []][i],
+    };
+  });
+  fs.writeFileSync(
+    path.join(USERDATA, 'data', 'library.json'),
+    JSON.stringify(library, null, 2),
+    'utf8'
+  );
 
   books.forEach((b, i) => {
     progress[b.id] = {

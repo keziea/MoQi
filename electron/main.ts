@@ -2,7 +2,8 @@ import { app, BrowserWindow, Menu, net, protocol } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { paths, ensureDirs, logError } from './store/paths';
+import { paths, ensureDirs, logError, getDataRootInfo } from './store/paths';
+import { cleanupPreviousDataDir } from './store/location';
 import { getSettings, saveSettings } from './store/userdata';
 import { registerIpc, setMainWindow, runScan } from './ipc';
 
@@ -205,7 +206,8 @@ if (!gotLock) {
   app.whenReady().then(async () => {
     bootLog('ready');
     ensureDirs();
-    bootLog('dirs ok');
+    cleanupPreviousDataDir();
+    bootLog(`dirs ok root=${getDataRootInfo().root}`);
     registerAssetProtocol();
     bootLog('protocol ok');
     registerIpc();

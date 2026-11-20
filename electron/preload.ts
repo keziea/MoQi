@@ -54,10 +54,16 @@ const api = {
     get: () => ipcRenderer.invoke('settings:get'),
     save: (patch: unknown) => ipcRenderer.invoke('settings:save', patch),
   },
-  data: {
-    counts: () => ipcRenderer.invoke('data:counts'),
-    export: () => ipcRenderer.invoke('data:export'),
-    import: () => ipcRenderer.invoke('data:import'),
+  backup: {
+    info: () => ipcRenderer.invoke('backup:info'),
+    export: (opts?: { includeBooks?: boolean }) =>
+      ipcRenderer.invoke('backup:export', opts ?? {}),
+    import: (mode: 'zip' | 'folder') => ipcRenderer.invoke('backup:import', { mode }),
+  },
+  location: {
+    info: () => ipcRenderer.invoke('location:info'),
+    change: () => ipcRenderer.invoke('location:change'),
+    reset: () => ipcRenderer.invoke('location:reset'),
   },
   app: {
     info: () => ipcRenderer.invoke('app:info'),
@@ -73,6 +79,16 @@ const api = {
       const listener = (_: unknown, p: { done: number; total: number; title: string }) => cb(p);
       ipcRenderer.on('library:scanProgress', listener);
       return () => ipcRenderer.removeListener('library:scanProgress', listener);
+    },
+    backupProgress: (cb: (p: unknown) => void) => {
+      const listener = (_: unknown, p: unknown) => cb(p);
+      ipcRenderer.on('backup:progress', listener);
+      return () => ipcRenderer.removeListener('backup:progress', listener);
+    },
+    locationProgress: (cb: (p: unknown) => void) => {
+      const listener = (_: unknown, p: unknown) => cb(p);
+      ipcRenderer.on('location:progress', listener);
+      return () => ipcRenderer.removeListener('location:progress', listener);
     },
   },
 };
