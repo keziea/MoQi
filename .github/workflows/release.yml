@@ -3,12 +3,16 @@ name: 发布安装包
 # 本工作流只做一件事：把仓库 release/ 目录里已经打好的安装包，
 # 发布到 GitHub Releases，供别人点开就下载。
 # 不做编译、不做打包，所以不会受 electron-builder 在 CI 上的问题影响。
+#
+# ⚠️ 只在手动触发时运行（workflow_dispatch）。
+# 不要挂到 tag push 上：仓库 release/ 里通常只有当前版本的二进制，
+# 一旦打 tag 就用通配符 release/Moqi-* 上传，会把上一版安装包也塞进新
+# Release（v0.5.0 就踩过：0.4.2 的包被传进了 0.5.0）。
+# 正式发版请用 scripts/publish-github.js / publish-gitee.js，它们只传
+# release/Moqi-<当前版本>-*。
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*'
 
 permissions:
   contents: write
@@ -22,6 +26,10 @@ jobs:
       - name: 取出仓库文件
         uses: actions/checkout@v4
 
+      - name: 计算版本号
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
       - name: 发布到 Releases
         uses: softprops/action-gh-release@v2
         with:
@@ -33,5 +41,5 @@ jobs:
           # 文件不存在时这一步会失败 —— 正好逼着发版前先把发布说明写好。
           body_path: docs/releases/${{ github.ref_name }}.md
           files: |
-            release/Moqi-*-Setup.exe
-            release/Moqi-*-portable.7z
+            release/Moqi-${{ steps.ver.outputs.version }}-Setup.exe
+            release/Moqi-${{ steps.ver.outputs.version }}-portable.7z

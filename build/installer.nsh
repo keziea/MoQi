@@ -39,7 +39,17 @@ moqiSkipDataPage:
   Abort
 
 moqiShowDataPage:
-  !insertmacro MUI_HEADER_TEXT "选择数据存放位置" "书架、笔记、书文件和阅读进度，都会保存在这里。"
+  !insertmacro MUI_HEADER_TEXT "选择程序与数据的位置" "程序装在哪、数据放哪，这一页都能看清楚。"
+
+  ; 把安装目录补全成「所选目录\moqi-reader」，让用户在这一页就看到最终路径
+  StrCpy $0 $INSTDIR 1 -1
+  ${If} $0 == "\"
+    StrCpy $INSTDIR $INSTDIR -1
+  ${EndIf}
+  ${GetFileName} $0 "$INSTDIR"
+  ${If} $0 != "moqi-reader"
+    StrCpy $INSTDIR "$INSTDIR\moqi-reader"
+  ${EndIf}
 
   nsDialogs::Create 1018
   Pop $MoqiDataPage
@@ -47,18 +57,18 @@ moqiShowDataPage:
     Abort
   ${EndIf}
 
-  ${NSD_CreateLabel} 0 0 100% 28u "墨栖会在下面这个位置里新建一个 MoQiReader 文件夹，用来存放你的全部数据。$\r$\n以后也可以在软件里随时更改。"
+  ${NSD_CreateLabel} 0 0 100% 36u "程序会安装到：$INSTDIR$\r$\n数据会放在下面这个位置（墨栖会在里面新建 MoQiReader 文件夹）："
   Pop $0
 
-  ${NSD_CreateDirRequest} 0 36u 78% 13u "$DOCUMENTS"
+  ${NSD_CreateDirRequest} 0 44u 78% 13u "$DOCUMENTS"
   Pop $MoqiDataEdit
   ${NSD_OnChange} $MoqiDataEdit MoqiDataRefreshHint
 
-  ${NSD_CreateBrowseButton} 79% 36u 21% 13u "浏览..."
+  ${NSD_CreateBrowseButton} 79% 44u 21% 13u "浏览..."
   Pop $MoqiDataBrowse
   ${NSD_OnClick} $MoqiDataBrowse MoqiDataBrowseClick
 
-  ${NSD_CreateLabel} 0 56u 100% 36u ""
+  ${NSD_CreateLabel} 0 64u 100% 34u ""
   Pop $MoqiDataHint
 
   Call MoqiDataRefreshHint

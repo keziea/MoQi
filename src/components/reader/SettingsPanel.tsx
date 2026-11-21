@@ -1,7 +1,8 @@
+import { useEffect, useState } from 'react';
 import type { FontKind, Settings, ThemeName } from '@shared/models';
 import { Sheet } from '@/components/ui/Sheet';
 import { Icon } from '@/components/ui/Icon';
-import { ipc } from '@/lib/ipc';
+import { ipc, type DataLocationInfo } from '@/lib/ipc';
 
 interface Props {
   open: boolean;
@@ -56,6 +57,31 @@ const SHORTCUTS: [string, string][] = [
 ];
 
 export function SettingsPanel({ open, onClose, settings, update }: Props) {
+  const [location, setLocation] = useState<DataLocationInfo | null>(null);
+  const [version, setVersion] = useState('');
+  const [moving, setMoving] = useState(false);
+  const [restarting, setRestarting] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setRestarting(false);
+    ipc.location.info().then(setLocation).catch(() => setLocation(null));
+    ipc.app.info().then((info) => setVersion(info.version)).catch(() => setVersion(''));
+  }, [open]);
+
+  async function handleChangeLocation() {
+    if (moving) return;
+    setMoving(true);
+    try {
+      const r = await ipc.location.change();
+      if (r.ok) setRestarting(true);
+    } catch {
+      /* 对话框里已经有提示，这里不重复 */
+    } finally {
+      setMoving(false);
+    }
+  }
+
   return (
     <Sheet open={open} onClose={onClose} title="阅读设置" subtitle="改动立即生效">
       {/* 字号 */}
@@ -220,15 +246,49 @@ export function SettingsPanel({ open, onClose, settings, update }: Props) {
 
       {/* 数据 */}
       <Group label="数据">
+        <div className="rounded-[10px] border border-line px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[12px] text-ink-2">数据存放位置</span>
+            <button
+              type="button"
+              onClick={handleChangeLocation}
+              disabled={moving}
+              className="shrink-0 text-[11.5px] font-medium disabled:opacity-50"
+              style={{ color: 'var(--accent)' }}
+            >
+              {moving ? '迁移中…' : '更改'}
+            </button>
+          </div>
+          <div className="mt-1 break-all text-[10.5px] leading-relaxed text-ink-3">
+            {location?.dataDir ?? '正在读取…'}
+          </div>
+          <div className="mt-1 text-[10.5px] leading-relaxed text-ink-3">
+            更改后会在你选的目录里新建 {location?.folderName ?? 'MoQiReader'} 文件夹，数据放在它下面的 data
+            里；搬完墨栖会自动重启。
+          </div>
+        </div>
+
+        {restarting && (
+          <div
+            className="mt-2 rounded-[10px] px-3 py-2 text-[11px] leading-relaxed"
+            style={{
+              background: 'color-mix(in srgb, var(--success) 8%, transparent)',
+              color: 'var(--success)',
+            }}
+          >
+            数据已搬好，墨栖正在重启…
+          </div>
+        )}
+
         <button
-          className="flex w-full items-center justify-between rounded-[10px] border border-line px-3 py-2.5 text-[12px] text-ink-2 transition-colors hover:bg-surface"
+          className="mt-2 flex w-full items-center justify-between rounded-[10px] border border-line px-3 py-2.5 text-[12px] text-ink-2 transition-colors hover:bg-surface"
           onClick={() => ipc.app.openDataDir()}
         >
           <span>打开数据文件夹</span>
           <Icon name="folder" size={15} />
         </button>
         <p className="mt-2.5 text-[10.5px] leading-relaxed text-ink-3">
-          墨栖 v0.1.0 · 书籍、笔记、进度全部保存在本机
+          墨栖{version ? ` v${version}` : ''} · 书籍、笔记、进度全部保存在本机
         </p>
       </Group>
     </Sheet>

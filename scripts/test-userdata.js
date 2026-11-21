@@ -265,6 +265,32 @@ async function main() {
 
   const targetParent = path.join(SANDBOX, '我的数据盘');
   fs.mkdirSync(targetParent, { recursive: true });
+
+  // 再加一本「放在外部文件夹」的书，验证搬家时会复制进数据目录
+  const externalFile = path.join(SANDBOX, '我的书', '外置书.txt');
+  fs.mkdirSync(path.dirname(externalFile), { recursive: true });
+  fs.writeFileSync(externalFile, `第一章\n${'外置书的正文。'.repeat(200)}`, 'utf8');
+  store.writeLibrary([
+    ...store.readLibrary(),
+    {
+      id: '外置书-xyz789',
+      title: '外置书',
+      author: '某人',
+      format: 'txt',
+      variants: [
+        {
+          format: 'txt',
+          path: externalFile,
+          sizeBytes: fs.statSync(externalFile).size,
+          quality: 60,
+        },
+      ],
+      totalChars: 1600,
+      chapterCount: 1,
+      addedAt: Date.now(),
+    },
+  ]);
+
   const moved = await loc.relocateData({ kind: 'custom', parent: targetParent });
   check('迁移成功', moved.ok === true, moved.detail);
   check('建的是 MoQiReader 文件夹', moved.ok && moved.root === path.join(targetParent, 'MoQiReader'), moved.root);
@@ -275,7 +301,24 @@ async function main() {
       path.join(targetParent, 'MoQiReader')
   );
   check('墨栖认得新位置', pathsMod.getDataRootInfo().dataDir === path.join(targetParent, 'MoQiReader', 'data'));
-  check('迁移后书架还在', store.readLibrary().length === 1);
+  const movedLib = store.readLibrary();
+  check('迁移后书架还在', movedLib.length === 2, String(movedLib.length));
+  const innerVariant = (movedLib.find((b) => b.id === BOOK_ID)?.variants || [])[0];
+  check(
+    '原来在数据目录里的书，路径跟着换了',
+    !!innerVariant && innerVariant.path.startsWith(path.join(targetParent, 'MoQiReader', 'data')),
+    innerVariant?.path
+  );
+  check('换完路径书文件还在', !!innerVariant && fs.existsSync(innerVariant.path));
+
+  const adoptedVariant = (movedLib.find((b) => b.id === '外置书-xyz789')?.variants || [])[0];
+  check('外部书被复制进新数据目录', moved.ok && moved.adopted === 1, String(moved.adopted));
+  check(
+    '外部书路径已指向新目录',
+    !!adoptedVariant && adoptedVariant.path.startsWith(path.join(targetParent, 'MoQiReader', 'data')),
+    adoptedVariant?.path
+  );
+  check('外部书复制后能读', !!adoptedVariant && fs.existsSync(adoptedVariant.path));
 
   loc.cleanupPreviousDataDir();
   check('旧位置已清理', !fs.existsSync(path.join(USERDATA, 'data')));

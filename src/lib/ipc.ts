@@ -45,7 +45,17 @@ export interface RelocateProgress {
 }
 
 export type RelocateResult =
-  | { ok: true; root: string; dataDir: string; files: number; bytes: number }
+  | {
+      ok: true;
+      root: string;
+      dataDir: string;
+      files: number;
+      bytes: number;
+      /** 顺手复制进新数据目录的外部书数量 */
+      adopted: number;
+      /** 复制失败的外部书 */
+      missing: string[];
+    }
   | {
       ok: false;
       canceled?: boolean;

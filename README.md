@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="src/assets/logo.png" width="108" alt="墨栖" />
+<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/src/assets/logo.png" width="108" alt="墨栖" />
 
 # 墨栖 · Moqi
 
@@ -17,7 +17,7 @@
 
 **GitHub** · https://github.com/keziea/MoQi 　|　 **Gitee** · https://gitee.com/azs_A/MoQi
 
-<img src="docs/screenshots/05-home.png" alt="墨栖工作台" width="100%" />
+<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/05-home.png" alt="墨栖工作台" width="100%" />
 
 </div>
 
@@ -68,6 +68,7 @@
 ### 修复
 
 - **换电脑后进度和笔记对不上**：书 ID 由文件夹路径生成，路径一变就全错位。现在书文件会复制进墨栖自己的数据目录，并沿用原 ID。
+- **换数据位置后书打不开**：`library.json` 里存的是绝对路径，搬家后没跟着改，旧目录一删就断。现在会改写路径，并把放在外部的书复制进新的数据目录。
 - **旧版导出丢书架**：原来只复制 `data/user/` 三个 JSON，书架、分类、封面、书文件都不在包里。
 - **恢复入口不明确**：「压缩包 / 文件夹」两个小按钮改成「导入压缩包」「导入文件夹」两条整行入口。
 - **版本索引漏了 v0.4.2**：`docs/releases/README.md` 已补。
@@ -90,43 +91,43 @@
 
 左侧五个入口，首页有今日目标环、继续阅读、连续阅读天数、最近笔记和书架一角。
 
-<img src="docs/screenshots/05-home.png" alt="工作台" width="100%" />
+<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/05-home.png" alt="工作台" width="100%" />
 
 ### 书架：同一本书的多个版本，合并成一张卡
 
 格式 pill 直接摆在下方，点一下就能换一种文件读，不用翻右键菜单。
 
-<img src="docs/screenshots/01-shelf.png" alt="书架" width="100%" />
+<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/01-shelf.png" alt="书架" width="100%" />
 
 ### 正文：像纸书，而不是像网页
 
 版心只占屏幕一半，一行 33 字，首行缩进两格、两端对齐。底部是「第 N / M 页」，不是无尽的滚动条。
 
-<img src="docs/screenshots/02-reader.png" alt="正文" width="100%" />
+<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/02-reader.png" alt="正文" width="100%" />
 
 ### 目录：严格按原书层级
 
 这本书几章几节，目录就是几章几节，父子关系和原文件一致，不自己猜。
 
-<img src="docs/screenshots/03-toc.png" alt="目录" width="100%" />
+<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/03-toc.png" alt="目录" width="100%" />
 
 ### 书籍详情：进度、时长、笔记集中在一屏
 
 下面直接选版本，EPUB 排版最好就默认选它。
 
-<img src="docs/screenshots/04-book-detail.png" alt="书籍详情" width="100%" />
+<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/04-book-detail.png" alt="书籍详情" width="100%" />
 
 ### 阅读统计：不跟别人比，只跟自己比
 
 7 / 30 / 56 天的阅读时长、读得最多的书、笔记习惯放在一起，能一键复制成复盘文字。
 
-<img src="docs/screenshots/06-analysis.png" alt="阅读统计" width="100%" />
+<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/06-analysis.png" alt="阅读统计" width="100%" />
 
 ### 阅读记录：把坐下来读书的日子收好
 
 一年热力图 + 按天时间线，每天读了哪本书、多久，一目了然。
 
-<img src="docs/screenshots/07-history.png" alt="阅读记录" width="100%" />
+<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/07-history.png" alt="阅读记录" width="100%" />
 
 ---
 
@@ -168,15 +169,15 @@
 
 | 版本 | 下载 |
 |---|---|
-| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.4.2/Moqi-0.4.2-Setup.exe)** |
-| **解压版**　66MB　不装进系统，解压就用 | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.4.2/Moqi-0.4.2-portable.7z)** |
+| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.5.0/Moqi-0.5.0-Setup.exe)** |
+| **解压版**　66MB　不装进系统，解压就用 | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.5.0/Moqi-0.5.0-portable.7z)** |
 
 **🌍 国外用户（GitHub）**
 
 | 版本 | 下载 |
 |---|---|
-| **安装版**　76MB　**← 推荐** | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.4.2/Moqi-0.4.2-Setup.exe)** |
-| **解压版**　66MB | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.4.2/Moqi-0.4.2-portable.7z)** |
+| **安装版**　76MB　**← 推荐** | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.5.0/Moqi-0.5.0-Setup.exe)** |
+| **解压版**　66MB | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.5.0/Moqi-0.5.0-portable.7z)** |
 
 > **不知道怎么选？下安装版。** 双击后会出现安装向导，**可以自己选装到哪个盘、哪个文件夹** —— 默认位置藏在 `C:\Users\你的用户名\AppData\Local\Programs\` 里，不好找，建议在向导里改成 `D:\Moqi` 这种一眼能看到的地方。装完还能顺便选**数据存到哪**：选一个目录，墨栖会在里面建 `MoQiReader` 文件夹。然后是桌面图标，以后从桌面打开。
 >
@@ -184,8 +185,6 @@
 >
 > ⚠️ 解压版**别放在中文名字的文件夹里**（比如「我的书」「新建文件夹」），可能打不开。
 > 放到 D 盘一个英文名的文件夹最稳，例如 `D:\Moqi`。
-
-> 📌 **源码已经到 v0.5.0**（完整备份 + 数据位置）。上面两行安装包仍是 v0.4.2，功能正常、数据完全兼容；0.5.0 安装包发布后会替换这两行链接。
 
 **想看源码、或者找历史版本？**
 [GitHub 仓库](https://github.com/keziea/MoQi) ｜ [Gitee 仓库](https://gitee.com/azs_A/MoQi)

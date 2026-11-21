@@ -336,7 +336,7 @@ export function DataBackup({ open, onClose, onImported }: Props) {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-[13px] font-medium leading-snug text-ink">
-                {busy === 'zip' ? '正在导入压缩包…' : '导入压缩包'}
+                {busy === 'zip' ? '正在导入压缩包…' : '以压缩包形式导入'}
               </span>
               <span className="mt-0.5 block text-[11px] leading-snug text-ink-3">
                 选中墨栖导出的 .zip，不用先解压
@@ -360,7 +360,7 @@ export function DataBackup({ open, onClose, onImported }: Props) {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-[13px] font-medium leading-snug text-ink">
-                {busy === 'folder' ? '正在导入文件夹…' : '导入文件夹'}
+                {busy === 'folder' ? '正在导入文件夹…' : '以文件夹形式导入'}
               </span>
               <span className="mt-0.5 block text-[11px] leading-snug text-ink-3">
                 已经解压出来的备份文件夹，外面多套一层也认

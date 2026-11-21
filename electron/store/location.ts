@@ -6,6 +6,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import type { BookMeta } from '../../shared/models';
 import {
   DATA_FOLDER_NAME,
   DATA_MARKER,
@@ -36,7 +37,17 @@ export interface RelocateProgress {
 }
 
 export type RelocateResult =
-  | { ok: true; root: string; dataDir: string; files: number; bytes: number }
+  | {
+      ok: true;
+      root: string;
+      dataDir: string;
+      files: number;
+      bytes: number;
+      /** 顺手复制进新数据目录的外部书数量 */
+      adopted: number;
+      /** 外部书复制失败的清单 */
+      missing: string[];
+    }
   | {
       ok: false;
       reason: 'inside' | 'same' | 'conflict' | 'io';
@@ -140,6 +151,100 @@ async function copyData(
   return { files: done, bytes };
 }
 
+function isInside(child: string, parent: string): boolean {
+  const c = lower(child);
+  const p = lower(parent);
+  return c === p || c.startsWith(`${p}${path.sep}`);
+}
+
+function safeName(raw: string): string {
+  const name = raw.replace(/[\\/:*?"<>|]/g, '_').replace(/^\.+/, '').trim();
+  return name || 'book.file';
+}
+
+/**
+ * 搬家后修正 library.json 里的书文件路径。
+ *
+ * 1. 原本就在 data/books 里的书：把绝对路径前缀换成新的 dataDir
+ *    （不换的话，旧目录一删，书就打不开了）
+ * 2. 原本指向外部文件夹的书：复制一本进 data/books/{id}/source，
+ *    让新的数据目录真正「自带书」，以后整个文件夹拷走就能用
+ */
+function rewriteLibrary(
+  newDataDir: string,
+  oldDataDir: string
+): { adopted: number; bytes: number; missing: string[] } {
+  const file = path.join(newDataDir, 'library.json');
+  const library = readJson<BookMeta[]>(file, []);
+  if (!Array.isArray(library) || !library.length) return { adopted: 0, bytes: 0, missing: [] };
+
+  let changed = false;
+  let adopted = 0;
+  let bytes = 0;
+  const missing: string[] = [];
+
+  for (const meta of library) {
+    for (const variant of meta.variants ?? []) {
+      if (!variant.path) continue;
+
+      // ❶ 本来就在 data 里：只换前缀
+      if (isInside(variant.path, oldDataDir)) {
+        variant.path = path.join(newDataDir, path.relative(oldDataDir, variant.path));
+        changed = true;
+        continue;
+      }
+      if (isInside(variant.path, newDataDir)) continue;
+
+      // ❷ 外部书：复制进新数据目录
+      let size = 0;
+      try {
+        size = fs.statSync(variant.path).size;
+      } catch {
+        size = 0;
+      }
+      if (!size) {
+        missing.push(`${meta.title}：${path.basename(variant.path)}`);
+        continue;
+      }
+
+      const sourceDir = path.join(newDataDir, 'books', meta.id, 'source');
+      const wanted = safeName(path.basename(variant.path));
+      let dest = path.join(sourceDir, wanted);
+
+      try {
+        fs.mkdirSync(sourceDir, { recursive: true });
+        // 目标已有同名同大小的文件，直接复用，不重复复制
+        let reuse = false;
+        try {
+          reuse = fs.statSync(dest).size === size;
+        } catch {
+          /* 不存在 */
+        }
+        if (!reuse) {
+          let n = 2;
+          while (fs.existsSync(dest)) {
+            const ext = path.extname(wanted);
+            dest = path.join(sourceDir, `${path.basename(wanted, ext)}-${n++}${ext}`);
+          }
+          fs.copyFileSync(variant.path, dest);
+        }
+      } catch {
+        missing.push(`${meta.title}：${path.basename(variant.path)}`);
+        continue;
+      }
+
+      variant.path = dest;
+      variant.sizeBytes = size;
+      adopted += 1;
+      bytes += size;
+      changed = true;
+    }
+  }
+
+  if (changed) writeJsonAtomic(file, library);
+  return { adopted, bytes, missing };
+}
+
 /**
  * 迁移数据到新位置。
  * 成功后需要调用方重启应用（app.relaunch），让所有模块重新读路径。
@@ -181,6 +286,7 @@ export async function relocateData(
   }
 
   const tmp = path.join(root, `${TMP_PREFIX}${Date.now()}`);
+  let placed = false;
 
   try {
     fs.mkdirSync(root, { recursive: true });
@@ -205,6 +311,10 @@ export async function relocateData(
 
     fs.writeFileSync(path.join(tmp, DATA_MARKER), markerBody(), 'utf8');
     fs.renameSync(tmp, dataDir);
+    placed = true;
+
+    // 修 library.json 里的绝对路径；外部书顺手复制进来，让新目录自带书
+    const rewritten = rewriteLibrary(dataDir, oldData);
 
     // 记指针：从这里开始，下一次启动读新位置
     try {
@@ -225,10 +335,19 @@ export async function relocateData(
       writeJsonAtomic(path.join(dataDir, CLEANUP_FILE), { old: oldData, at: Date.now() });
     }
 
-    return { ok: true, root, dataDir, files: copied.files, bytes: copied.bytes };
+    return {
+      ok: true,
+      root,
+      dataDir,
+      files: copied.files + rewritten.adopted,
+      bytes: copied.bytes + rewritten.bytes,
+      adopted: rewritten.adopted,
+      missing: rewritten.missing,
+    };
   } catch (err) {
     try {
-      if (fs.existsSync(tmp)) fs.rmSync(tmp, { recursive: true, force: true });
+      const partial = placed ? dataDir : tmp;
+      if (fs.existsSync(partial)) fs.rmSync(partial, { recursive: true, force: true });
     } catch {
       /* ignore */
     }
