@@ -3,7 +3,7 @@
   "version": "0.5.1",
   "moqi": {
     "appNameEn": "moqi-reader",
-    "programDir": "moqi-reader",
+    "programDir": "MoQiReader",
     "dataDir": "MoQiData"
   },
   "private": true,

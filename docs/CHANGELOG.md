@@ -16,7 +16,7 @@
 
 - **名字集中生成**：`package.json → moqi.{appNameEn,programDir,dataDir}`，
   `scripts/gen-names.js` 生成 `build/folder-names.nsh` 与 `shared/names.generated.ts`；
-  安装器与运行时不再出现 `moqi-reader` / `MoQiData` 字面量。
+  安装器与运行时不再出现 `MoQiReader` / `MoQiData` 字面量。
 - **数据目录改名**：`MoQiReader` → `MoQiData`（带 Data，用户更容易理解）。
 - **安装器程序页**：关闭 `allowToChangeInstallationDirectory`，自定义页接管；
   选根目录实时预览 `根\{{PROGRAM_DIR}}`，已存在提示，受保护目录拦截。
