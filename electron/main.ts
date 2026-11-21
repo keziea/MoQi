@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { paths, ensureDirs, logError, getDataRootInfo } from './store/paths';
+import { APP_NAME_EN } from '../shared/names.generated';
 import { cleanupPreviousDataDir } from './store/location';
 import { getSettings, saveSettings } from './store/userdata';
 import { registerIpc, setMainWindow, runScan } from './ipc';
@@ -12,7 +13,7 @@ const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 /** 启动自检日志：打包版若启动即退，用它定位停在哪一步 */
 function bootLog(msg: string) {
   try {
-    const dir = path.join(process.env.APPDATA || process.env.HOME || '.', 'moqi-reader');
+    const dir = path.join(process.env.APPDATA || process.env.HOME || '.', APP_NAME_EN);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.appendFileSync(path.join(dir, 'boot.log'), `[${new Date().toISOString()}] ${msg}\n`, 'utf8');
   } catch {

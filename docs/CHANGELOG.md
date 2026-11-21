@@ -5,6 +5,45 @@
 
 ---
 
+## 2026-11-21 · v0.5.1 安装器双路径与数据目录（新增 / 修复）
+
+### 背景
+
+0.5.0 的安装器只有一页数据位置，程序目录仍用 electron-builder 自带页（选完看不到最终路径）；
+数据目录名 `MoQiReader` 不够直观；迁移只有「移动」；便携版仍把数据放 AppData；卸载不能选删数据。
+
+### 改动
+
+- **名字集中生成**：`package.json → moqi.{appNameEn,programDir,dataDir}`，
+  `scripts/gen-names.js` 生成 `build/folder-names.nsh` 与 `shared/names.generated.ts`；
+  安装器与运行时不再出现 `moqi-reader` / `MoQiData` 字面量。
+- **数据目录改名**：`MoQiReader` → `MoQiData`（带 Data，用户更容易理解）。
+- **安装器程序页**：关闭 `allowToChangeInstallationDirectory`，自定义页接管；
+  选根目录实时预览 `根\{{PROGRAM_DIR}}`，已存在提示，受保护目录拦截。
+- **安装器数据页**：默认系统位置 / 自定义上级目录；固定 `MoQiData`；已有数据只汇总不移动；
+  创建失败当场阻断；升级按 `$INSTDIR\墨栖.exe` 是否存在跳过程序页。
+- **复制 / 移动**：`relocateData(target, mode)`；确认框三选一；复制模式保留旧数据、不写 `pending-cleanup`。
+- **便携版**：`pack.js` 写 `portable.flag`；`paths.ts` 识别便携模式，
+  默认数据根 `<exeDir>\MoQiData`；只读介质回退系统目录；老用户 AppData 数据先沿用（`legacyPortable`）。
+- **卸载**：自定义 `UninstPage`，默认不删数据；勾选 + 二次确认；只删带 `.moqi-data` 标记的目录；
+  保留数据时保留指针，重装还能找回原位置。
+
+### 修复
+
+- 程序目录重复拼接 `moqi-reader\moqi-reader`。
+- 数据目录已有非墨栖文件时误复用。
+- 数据目录创建失败仍写指针。
+- 卸载保留数据却删掉指针。
+
+### 牵连
+
+- `electron/store/paths.ts`（便携判定、指针位置）、`location.ts`（mode）、`ipc/index.ts`（三选一）
+- `build/installer.nsh` 重写；`electron-builder.yml` 关闭自带目录页
+- 测试：60 项（新增复制模式、路径改写、外部书收编）
+- 文档：`10` 状态表与确认项、`02/03/07/08` 数据名、README 0.5.1 段落、`releases/v0.5.1.md`
+
+---
+
 ## 2026-11-20 · v0.5.0 数据存放位置（新增）
 
 ### 背景

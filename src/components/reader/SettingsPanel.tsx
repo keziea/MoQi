@@ -3,6 +3,7 @@ import type { FontKind, Settings, ThemeName } from '@shared/models';
 import { Sheet } from '@/components/ui/Sheet';
 import { Icon } from '@/components/ui/Icon';
 import { ipc, type DataLocationInfo } from '@/lib/ipc';
+import { DATA_DIR_NAME } from '@shared/names.generated';
 
 interface Props {
   open: boolean;
@@ -263,7 +264,7 @@ export function SettingsPanel({ open, onClose, settings, update }: Props) {
             {location?.dataDir ?? '正在读取…'}
           </div>
           <div className="mt-1 text-[10.5px] leading-relaxed text-ink-3">
-            更改后会在你选的目录里新建 {location?.folderName ?? 'MoQiReader'} 文件夹，数据放在它下面的 data
+            更改后会在你选的目录里新建 {location?.folderName ?? DATA_DIR_NAME} 文件夹，数据放在它下面的 data
             里；搬完墨栖会自动重启。
           </div>
         </div>

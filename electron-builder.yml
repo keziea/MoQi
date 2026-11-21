@@ -44,7 +44,8 @@ electronLanguages:
 # 这里改成标准安装向导：可以选目录、选文件夹名，装完再创建快捷方式。
 nsis:
   oneClick: false
-  allowToChangeInstallationDirectory: true
+  # 程序目录由 build/installer.nsh 的自定义页接管（实时预览 根\moqi-reader）
+  allowToChangeInstallationDirectory: false
   perMachine: false
   allowElevation: true
   createDesktopShortcut: true

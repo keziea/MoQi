@@ -12,6 +12,7 @@ import {
   type DataLocationInfo,
   type RelocateProgress,
 } from '@/lib/ipc';
+import { DATA_DIR_NAME } from '@shared/names.generated';
 
 type Status =
   | { kind: 'idle' }
@@ -462,9 +463,29 @@ export function DataBackup({ open, onClose, onImported }: Props) {
             <div className="mt-1 text-[11px] leading-relaxed text-ink-3">
               {location?.isCustom
                 ? `数据放在你选的 ${location.folderName} 文件夹里`
-                : `默认位置。更改时选一个目录，墨栖会在里面新建 ${location?.folderName ?? 'MoQiReader'} 文件夹`}
+                : location?.portable
+                  ? `便携版默认位置：程序旁边的 ${location.folderName} 文件夹`
+                  : `默认位置。更改时选一个目录，墨栖会在里面新建 ${location?.folderName ?? DATA_DIR_NAME} 文件夹`}
             </div>
           </div>
+
+          {location?.legacyPortable && (
+            <div
+              className="rounded-[10px] px-3 py-2 text-[11px] leading-relaxed"
+              style={{ background: 'var(--warning-soft, #f7f1e3)', color: 'var(--ink-2)' }}
+            >
+              检测到旧数据还在系统目录。点「更改位置」可以把数据搬到程序旁边，整个文件夹就能一起拷走。
+            </div>
+          )}
+
+          {location?.portableReadonly && (
+            <div
+              className="rounded-[10px] px-3 py-2 text-[11px] leading-relaxed"
+              style={{ background: 'var(--warning-soft, #f7f1e3)', color: 'var(--ink-2)' }}
+            >
+              程序目录不可写（可能是只读 U 盘），已临时使用系统数据目录。
+            </div>
+          )}
 
           {location?.unavailable && (
             <div

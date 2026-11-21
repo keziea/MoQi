@@ -12,7 +12,7 @@ import type {
   ReadingSession,
   Settings,
 } from '../../shared/models';
-import { paths, ensureDirs, logError, DATA_FOLDER_NAME, defaultDataDir, getDataRootInfo } from '../store/paths';
+import { paths, ensureDirs, logError, DATA_DIR_NAME, defaultDataDir, getDataRootInfo } from '../store/paths';
 import {
   makeBookId,
   pickBest,
@@ -454,7 +454,9 @@ export function registerIpc(): void {
       isCustomDataRoot: root.isCustom,
       unavailableDataRoot: root.unavailable ?? '',
       defaultDataDir: defaultDataDir(),
-      dataFolderName: DATA_FOLDER_NAME,
+      dataFolderName: DATA_DIR_NAME,
+      portable: root.portable,
+      legacyPortable: !!root.legacyPortable,
       libraryDir: resolveDirs(getSettings())[0] ?? '',
       documents: (() => {
         try {
@@ -475,8 +477,11 @@ export function registerIpc(): void {
       dataDir: root.dataDir,
       isCustom: root.isCustom,
       unavailable: root.unavailable ?? '',
-      folderName: DATA_FOLDER_NAME,
+      folderName: DATA_DIR_NAME,
       defaultDataDir: defaultDataDir(),
+      portable: root.portable,
+      legacyPortable: !!root.legacyPortable,
+      portableReadonly: !!root.portableReadonly,
     };
   });
 
@@ -523,22 +528,27 @@ export function registerIpc(): void {
     const stats = getBackupStats();
     const confirm = await dialog.showMessageBox(mainWindow!, {
       type: 'question',
-      buttons: ['开始迁移', '取消'],
+      buttons: ['复制过去（保留旧数据）', '移动过去（删除旧目录）', '取消'],
       defaultId: 0,
-      cancelId: 1,
+      cancelId: 2,
       title: '更改数据位置',
-      message: `会在所选位置创建 ${DATA_FOLDER_NAME} 文件夹`,
+      message: `会在所选位置创建 ${DATA_DIR_NAME} 文件夹`,
       detail: [
         `数据目录：`,
         plan.dataDir,
         '',
         `当前的 ${stats.shelf} 本书、${stats.notes} 条笔记、${stats.days} 天阅读记录会一起搬过去。`,
-        '完成后墨栖会自动重启，旧位置的数据会在下次启动时清理。',
+        '',
+        '复制：旧位置原样保留，确认没问题后你可以自己删。',
+        '移动：复制并核对成功后，旧目录会在下次启动时自动删除。',
+        '',
+        '完成后墨栖会自动重启。',
       ].join('\n'),
     });
-    if (confirm.response !== 0) return { ok: false, canceled: true };
+    if (confirm.response === 2 || confirm.response < 0) return { ok: false, canceled: true };
 
-    const result = await relocateData({ kind: 'custom', parent }, sendLocationProgress);
+    const mode = confirm.response === 1 ? 'move' : 'copy';
+    const result = await relocateData({ kind: 'custom', parent }, mode, sendLocationProgress);
     if (result.ok) scheduleRelaunch();
     return result;
   });
@@ -555,7 +565,7 @@ export function registerIpc(): void {
     });
     if (confirm.response !== 0) return { ok: false, canceled: true };
 
-    const result = await relocateData({ kind: 'default' }, sendLocationProgress);
+    const result = await relocateData({ kind: 'default' }, 'move', sendLocationProgress);
     if (result.ok) {
       scheduleRelaunch();
     } else if (result.reason === 'conflict') {

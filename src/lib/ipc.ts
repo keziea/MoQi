@@ -23,6 +23,8 @@ export interface AppInfoLite {
   unavailableDataRoot: string;
   defaultDataDir: string;
   dataFolderName: string;
+  portable: boolean;
+  legacyPortable: boolean;
   libraryDir: string;
   documents: string;
   exeDir: string;
@@ -33,9 +35,15 @@ export interface DataLocationInfo {
   dataDir: string;
   isCustom: boolean;
   unavailable: string;
-  /** 会自动创建的文件夹名，例如 MoQiReader */
+  /** 会自动创建的文件夹名，例如 MoQiData */
   folderName: string;
   defaultDataDir: string;
+  /** 便携版（exe 同级有 portable.flag） */
+  portable: boolean;
+  /** 便携版但数据仍在系统目录（老用户） */
+  legacyPortable: boolean;
+  /** 便携目录只读，已退回系统目录 */
+  portableReadonly: boolean;
 }
 
 export interface RelocateProgress {
@@ -55,6 +63,8 @@ export type RelocateResult =
       adopted: number;
       /** 复制失败的外部书 */
       missing: string[];
+      /** copy = 旧数据保留；move = 下次启动删旧目录 */
+      mode: 'copy' | 'move';
     }
   | {
       ok: false;

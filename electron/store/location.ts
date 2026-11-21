@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { BookMeta } from '../../shared/models';
 import {
-  DATA_FOLDER_NAME,
+  DATA_DIR_NAME,
   DATA_MARKER,
   clearDataRootPointer,
   defaultDataDir,
@@ -47,6 +47,8 @@ export type RelocateResult =
       adopted: number;
       /** 外部书复制失败的清单 */
       missing: string[];
+      /** 本次是复制还是移动 */
+      mode: RelocateMode;
     }
   | {
       ok: false;
@@ -57,6 +59,9 @@ export type RelocateResult =
     };
 
 export type RelocateTarget = { kind: 'custom'; parent: string } | { kind: 'default' };
+
+/** copy = 复制后保留旧数据；move = 复制校验后，下次启动删除旧目录 */
+export type RelocateMode = 'copy' | 'move';
 
 const TMP_PREFIX = '.moqi-data-tmp-';
 const CLEANUP_FILE = 'pending-cleanup.json';
@@ -78,11 +83,11 @@ export function isMoqiDataDir(dir: string): boolean {
   }
 }
 
-/** 用户选中的目录 → 实际要创建的 MoQiReader 目录 */
+/** 用户选中的目录 → 实际要创建的数据根目录 */
 export function planDataLocation(parent: string): LocationPlan {
   const resolved = path.resolve(parent.trim());
   const base = path.basename(resolved).toLowerCase();
-  const root = base === DATA_FOLDER_NAME.toLowerCase() ? resolved : path.join(resolved, DATA_FOLDER_NAME);
+  const root = base === DATA_DIR_NAME.toLowerCase() ? resolved : path.join(resolved, DATA_DIR_NAME);
   const dataDir = path.join(root, 'data');
 
   const current = getDataRootInfo();
@@ -251,6 +256,7 @@ function rewriteLibrary(
  */
 export async function relocateData(
   target: RelocateTarget,
+  mode: RelocateMode = 'move',
   onProgress?: (p: RelocateProgress) => void
 ): Promise<RelocateResult> {
   const current = getDataRootInfo();
@@ -330,8 +336,9 @@ export async function relocateData(
       throw err;
     }
 
-    // 旧位置留给下一次启动清理：此时当前进程可能还有零星写入，立刻删不安全
-    if (lower(oldData) !== lower(dataDir)) {
+    // 移动模式：旧位置留给下一次启动清理（当前进程可能还有零星写入，立刻删不安全）
+    // 复制模式：旧数据原样保留，不写清理指令
+    if (mode === 'move' && lower(oldData) !== lower(dataDir)) {
       writeJsonAtomic(path.join(dataDir, CLEANUP_FILE), { old: oldData, at: Date.now() });
     }
 
@@ -343,6 +350,7 @@ export async function relocateData(
       bytes: copied.bytes + rewritten.bytes,
       adopted: rewritten.adopted,
       missing: rewritten.missing,
+      mode,
     };
   } catch (err) {
     try {

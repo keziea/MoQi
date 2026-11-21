@@ -293,20 +293,20 @@ async function main() {
 
   const moved = await loc.relocateData({ kind: 'custom', parent: targetParent });
   check('迁移成功', moved.ok === true, moved.detail);
-  check('建的是 MoQiReader 文件夹', moved.ok && moved.root === path.join(targetParent, 'MoQiReader'), moved.root);
-  check('数据落在 MoQiReader\\data', moved.ok && fs.existsSync(path.join(moved.root, 'data', 'library.json')));
+  check('建的是 MoQiData 文件夹', moved.ok && moved.root === path.join(targetParent, 'MoQiData'), moved.root);
+  check('数据落在 MoQiData\\data', moved.ok && fs.existsSync(path.join(moved.root, 'data', 'library.json')));
   check(
     '记下了新位置',
     fs.readFileSync(path.join(USERDATA, 'data-root.txt'), 'utf8').trim() ===
-      path.join(targetParent, 'MoQiReader')
+      path.join(targetParent, 'MoQiData')
   );
-  check('墨栖认得新位置', pathsMod.getDataRootInfo().dataDir === path.join(targetParent, 'MoQiReader', 'data'));
+  check('墨栖认得新位置', pathsMod.getDataRootInfo().dataDir === path.join(targetParent, 'MoQiData', 'data'));
   const movedLib = store.readLibrary();
   check('迁移后书架还在', movedLib.length === 2, String(movedLib.length));
   const innerVariant = (movedLib.find((b) => b.id === BOOK_ID)?.variants || [])[0];
   check(
     '原来在数据目录里的书，路径跟着换了',
-    !!innerVariant && innerVariant.path.startsWith(path.join(targetParent, 'MoQiReader', 'data')),
+    !!innerVariant && innerVariant.path.startsWith(path.join(targetParent, 'MoQiData', 'data')),
     innerVariant?.path
   );
   check('换完路径书文件还在', !!innerVariant && fs.existsSync(innerVariant.path));
@@ -315,7 +315,7 @@ async function main() {
   check('外部书被复制进新数据目录', moved.ok && moved.adopted === 1, String(moved.adopted));
   check(
     '外部书路径已指向新目录',
-    !!adoptedVariant && adoptedVariant.path.startsWith(path.join(targetParent, 'MoQiReader', 'data')),
+    !!adoptedVariant && adoptedVariant.path.startsWith(path.join(targetParent, 'MoQiData', 'data')),
     adoptedVariant?.path
   );
   check('外部书复制后能读', !!adoptedVariant && fs.existsSync(adoptedVariant.path));
@@ -323,13 +323,13 @@ async function main() {
   loc.cleanupPreviousDataDir();
   check('旧位置已清理', !fs.existsSync(path.join(USERDATA, 'data')));
 
-  const conflictDir = path.join(SANDBOX, '另一个盘', 'MoQiReader', 'data');
+  const conflictDir = path.join(SANDBOX, '另一个盘', 'MoQiData', 'data');
   fs.mkdirSync(conflictDir, { recursive: true });
   fs.writeFileSync(path.join(conflictDir, 'library.json'), '[]', 'utf8');
   const conflict = await loc.relocateData({ kind: 'custom', parent: path.join(SANDBOX, '另一个盘') });
   check('目标已有数据时拒绝覆盖', conflict.ok === false && conflict.reason === 'conflict');
 
-  const inside = await loc.relocateData({ kind: 'custom', parent: path.join(targetParent, 'MoQiReader', 'data') });
+  const inside = await loc.relocateData({ kind: 'custom', parent: path.join(targetParent, 'MoQiData', 'data') });
   check('不允许搬进数据目录内部', inside.ok === false && inside.reason === 'inside');
 
   const backHome = await loc.relocateData({ kind: 'default' });
@@ -337,15 +337,28 @@ async function main() {
   check('默认位置又有了书架', fs.existsSync(path.join(USERDATA, 'data', 'library.json')));
   check('指针已清掉', !fs.existsSync(path.join(USERDATA, 'data-root.txt')));
   loc.cleanupPreviousDataDir();
-  check('自定义位置已清理', !fs.existsSync(path.join(targetParent, 'MoQiReader', 'data')));
+  check('自定义位置已清理', !fs.existsSync(path.join(targetParent, 'MoQiData', 'data')));
 
   // 移动硬盘拔掉的情况：记录的位置打不开，应自动退回默认
-  pathsMod.setDataRootPointer(path.join(SANDBOX, '没插上的移动硬盘', 'MoQiReader'));
+  pathsMod.setDataRootPointer(path.join(SANDBOX, '没插上的移动硬盘', 'MoQiData'));
   const fallback = pathsMod.getDataRootInfo();
   check('位置打不开时回退默认', fallback.isCustom === false, JSON.stringify(fallback));
   check('记得不可用的原位置', String(fallback.unavailable || '').includes('没插上的移动硬盘'));
   check('回退后数据还能读', fs.existsSync(path.join(fallback.dataDir, 'library.json')));
   pathsMod.clearDataRootPointer();
+
+  // 复制模式：旧位置保留，不写 pending-cleanup
+  const copyParent = path.join(SANDBOX, '复制模式盘');
+  fs.mkdirSync(copyParent, { recursive: true });
+  const copied = await loc.relocateData({ kind: 'custom', parent: copyParent }, 'copy');
+  check('复制模式迁移成功', copied.ok === true, copied.detail);
+  check('复制模式旧位置还在', fs.existsSync(path.join(USERDATA, 'data', 'library.json')));
+  check(
+    '复制模式不写清理指令',
+    !fs.existsSync(path.join(copyParent, 'MoQiData', 'data', 'pending-cleanup.json'))
+  );
+  loc.cleanupPreviousDataDir();
+  check('清理任务不会动旧数据', fs.existsSync(path.join(USERDATA, 'data', 'library.json')));
 
   console.log(`\n${pass} 项通过 · ${fail} 项失败`);
   console.log(`临时目录：${SANDBOX}`);

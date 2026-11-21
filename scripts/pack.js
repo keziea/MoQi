@@ -123,6 +123,18 @@ function safeRemove(target) {
   copyTree(src, FINAL_DIR);
   log(`已实体化 ${fileCount} 个文件`);
 
+  // 便携模式标记：应用靠它把默认数据目录放到程序旁边的 <dataDir>
+  fs.writeFileSync(
+    path.join(FINAL_DIR, 'portable.flag'),
+    JSON.stringify(
+      { app: require(path.join(ROOT, 'package.json')).moqi?.appNameEn || 'moqi-reader', version: VERSION, mode: 'portable' },
+      null,
+      2
+    ),
+    'utf8'
+  );
+  log('已写入 portable.flag');
+
   console.log('▸ 5/5 清理临时目录');
   safeRemove(BUILD_DIR);
 
