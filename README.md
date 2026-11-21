@@ -54,7 +54,7 @@
 - **卸载**：默认保留数据，勾选并二次确认才删。
 - **名字不再硬编码**：改 `package.json → moqi` 一处，安装器和代码同时生效。
 
-> 0.5.1 安装包还在本地测试，下载页暂时仍指向 0.5.0；源码已包含这些改动。
+> 安装包与绿色版都已发布到 v0.5.1。
 
 ## 本次更新 · v0.5.0（2026-11-20）
 
@@ -180,15 +180,15 @@
 
 | 版本 | 下载 |
 |---|---|
-| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.5.0/Moqi-0.5.0-Setup.exe)** |
-| **解压版**　66MB　不装进系统，解压就用 | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.5.0/Moqi-0.5.0-portable.7z)** |
+| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.5.1/Moqi-0.5.1-Setup.exe)** |
+| **解压版**　66MB　不装进系统，解压就用 | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.5.1/Moqi-0.5.1-portable.7z)** |
 
 **🌍 国外用户（GitHub）**
 
 | 版本 | 下载 |
 |---|---|
-| **安装版**　76MB　**← 推荐** | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.5.0/Moqi-0.5.0-Setup.exe)** |
-| **解压版**　66MB | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.5.0/Moqi-0.5.0-portable.7z)** |
+| **安装版**　76MB　**← 推荐** | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.5.1/Moqi-0.5.1-Setup.exe)** |
+| **解压版**　66MB | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.5.1/Moqi-0.5.1-portable.7z)** |
 
 > **不知道怎么选？下安装版。** 双击后会出现安装向导，**可以自己选装到哪个盘、哪个文件夹** —— 默认位置藏在 `C:\Users\你的用户名\AppData\Local\Programs\` 里，不好找，建议在向导里改成 `D:\Moqi` 这种一眼能看到的地方。装完还能顺便选**数据存到哪**：选一个目录，墨栖会在里面建 `MoQiData` 文件夹。然后是桌面图标，以后从桌面打开。
 >
