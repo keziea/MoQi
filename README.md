@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/src/assets/logo.png" width="108" alt="墨栖" />
+<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/src/assets/logo.png" width="108" alt="墨栖" />
 
 # 墨栖 · Moqi
 
@@ -17,7 +17,7 @@
 
 **GitHub** · https://github.com/keziea/MoQi 　|　 **Gitee** · https://gitee.com/azs_A/MoQi
 
-<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/05-home.png" alt="墨栖工作台" width="100%" />
+<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/05-home.png" alt="墨栖工作台" width="100%" />
 
 </div>
 
@@ -91,43 +91,43 @@
 
 左侧五个入口，首页有今日目标环、继续阅读、连续阅读天数、最近笔记和书架一角。
 
-<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/05-home.png" alt="工作台" width="100%" />
+<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/05-home.png" alt="工作台" width="100%" />
 
 ### 书架：同一本书的多个版本，合并成一张卡
 
 格式 pill 直接摆在下方，点一下就能换一种文件读，不用翻右键菜单。
 
-<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/01-shelf.png" alt="书架" width="100%" />
+<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/01-shelf.png" alt="书架" width="100%" />
 
 ### 正文：像纸书，而不是像网页
 
 版心只占屏幕一半，一行 33 字，首行缩进两格、两端对齐。底部是「第 N / M 页」，不是无尽的滚动条。
 
-<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/02-reader.png" alt="正文" width="100%" />
+<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/02-reader.png" alt="正文" width="100%" />
 
 ### 目录：严格按原书层级
 
 这本书几章几节，目录就是几章几节，父子关系和原文件一致，不自己猜。
 
-<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/03-toc.png" alt="目录" width="100%" />
+<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/03-toc.png" alt="目录" width="100%" />
 
 ### 书籍详情：进度、时长、笔记集中在一屏
 
 下面直接选版本，EPUB 排版最好就默认选它。
 
-<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/04-book-detail.png" alt="书籍详情" width="100%" />
+<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/04-book-detail.png" alt="书籍详情" width="100%" />
 
 ### 阅读统计：不跟别人比，只跟自己比
 
 7 / 30 / 56 天的阅读时长、读得最多的书、笔记习惯放在一起，能一键复制成复盘文字。
 
-<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/06-analysis.png" alt="阅读统计" width="100%" />
+<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/06-analysis.png" alt="阅读统计" width="100%" />
 
 ### 阅读记录：把坐下来读书的日子收好
 
 一年热力图 + 按天时间线，每天读了哪本书、多久，一目了然。
 
-<img src="https://cdn.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/07-history.png" alt="阅读记录" width="100%" />
+<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/07-history.png" alt="阅读记录" width="100%" />
 
 ---
 
