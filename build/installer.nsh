@@ -24,6 +24,8 @@ Var MoqiDataBrowse
 Var MoqiDataHint
 Var MoqiDataParent
 Var MoqiDataRoot
+Var MoqiHasExisting
+Var MoqiExistingRoot
 
 ; 由 electron-builder 的 assisted installer 在「选择安装位置」之后插入
 !macro customPageAfterChangeDir
@@ -31,17 +33,37 @@ Var MoqiDataRoot
 !macroend
 
 Function MoqiDataPageCreate
-  IfFileExists "$APPDATA\moqi-reader\data\*.*" moqiSkipDataPage
-  IfFileExists "$APPDATA\moqi-reader\data-root.txt" moqiSkipDataPage
-  Goto moqiShowDataPage
+  ; 判断是不是升级：已有 data 或已经记录过位置
+  StrCpy $MoqiHasExisting "0"
+  StrCpy $MoqiExistingRoot ""
+  IfFileExists "$APPDATA\moqi-reader\data-root.txt" 0 moqiNoPointer
+    FileOpen $1 "$APPDATA\moqi-reader\data-root.txt" r
+    FileRead $1 $MoqiExistingRoot
+    FileClose $1
+    StrCpy $MoqiExistingRoot "$MoqiExistingRoot\data"
+    StrCpy $MoqiHasExisting "1"
+    Goto moqiAfterDetect
+  moqiNoPointer:
+  IfFileExists "$APPDATA\moqi-reader\data\*.*" 0 moqiAfterDetect
+    StrCpy $MoqiExistingRoot "$APPDATA\moqi-reader\data"
+    StrCpy $MoqiHasExisting "1"
+  moqiAfterDetect:
 
-moqiSkipDataPage:
-  Abort
+  ; 升级：只做汇总，不移动数据（移动交给软件里的安全迁移）
+  ${If} $MoqiHasExisting == "1"
+    !insertmacro MUI_HEADER_TEXT "确认程序与数据位置" "已有数据不会被移动"
+    nsDialogs::Create 1018
+    Pop $MoqiDataPage
+    ${If} $MoqiDataPage == error
+      Abort
+    ${EndIf}
+    ${NSD_CreateLabel} 0 0 100% 70u "程序会安装到：$INSTDIR$\r$\n$\r$\n现有数据位置：$MoqiExistingRoot$\r$\n安装不会移动数据。要换位置，装好后在「阅读设置 → 数据」里改，墨栖会自动搬过去。"
+    Pop $0
+    nsDialogs::Show
+    Return
+  ${EndIf}
 
-moqiShowDataPage:
-  !insertmacro MUI_HEADER_TEXT "选择程序与数据的位置" "程序装在哪、数据放哪，这一页都能看清楚。"
-
-  ; 把安装目录补全成「所选目录\moqi-reader」，让用户在这一页就看到最终路径
+  ; 全新安装：把安装目录补全成「所选目录\moqi-reader」，让用户在这一页就看到最终路径
   StrCpy $0 $INSTDIR 1 -1
   ${If} $0 == "\"
     StrCpy $INSTDIR $INSTDIR -1
@@ -50,6 +72,8 @@ moqiShowDataPage:
   ${If} $0 != "moqi-reader"
     StrCpy $INSTDIR "$INSTDIR\moqi-reader"
   ${EndIf}
+
+  !insertmacro MUI_HEADER_TEXT "选择程序与数据的位置" "程序装在哪、数据放哪，这一页都能看清楚。"
 
   nsDialogs::Create 1018
   Pop $MoqiDataPage
@@ -115,6 +139,10 @@ Function MoqiDataRefreshHint
 FunctionEnd
 
 Function MoqiDataPageLeave
+  ${If} $MoqiHasExisting == "1"
+    Return
+  ${EndIf}
+
   ${NSD_GetText} $MoqiDataEdit $MoqiDataParent
   ${If} $MoqiDataParent == ""
     MessageBox MB_ICONEXCLAMATION|MB_OK "请先选择一个文件夹，用来存放墨栖的数据。"
