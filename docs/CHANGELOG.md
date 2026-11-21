@@ -5,6 +5,174 @@
 
 ---
 
+## 2026-11-21 · v0.8.0 单根布局（重构 / BREAKING）
+
+### 背景
+
+v0.7 的程序在 `MoQiReader`、数据在 `MoQiData`（默认还可能在 `%APPDATA%`），两个目录是分开的。用户希望：
+**只选一个安装位置，自动创建 `MoQiReader`，里面固定 `Program` + `Data`；数据跟着软件走，设置里不再允许单独改数据位置。** 绿色版压缩包也按同一结构，解压到哪都能自己找到数据。
+
+### 改动
+
+- **布局**：`<父目录>\MoQiReader\Program`（exe/resources）+ `<父目录>\MoQiReader\Data`（library/books/user/backups/exports/logs/runtime）。容器可改名，数据始终是 `Program` 的兄弟 `Data`。
+- **运行时**：不再读 `data-root.txt` 指针；`programDir = exe 所在目录`，`dataDir = 父目录\Data`。`Data\runtime` 同时作为 Electron 的 `userData` / `sessionData`，整个文件夹搬走时缓存和单实例锁也跟着走。
+- **安装器**：删掉第二个数据输入框，只留一个「安装位置」；选上级自动补 `MoQiReader`，框里直接显示最终软件目录；自动创建 `Program` + `Data`；`Program Files` / Windows / 系统盘根拦截；升级只覆盖 `Program`，卸载默认保留 `Data`。
+- **绿色版**：压缩包根目录就是 `MoQiReader`，内含 `Program` + 空的 `Data` 骨架（只有目录和 `.moqi-data`，不带任何真实书/笔记）；附 `启动墨栖.cmd` 方便双击。
+- **旧数据迁移**：首次启动发现 v0.7 的 `%APPDATA%\MoQiData`、旧指针或 `%APPDATA%\moqi-reader\data`，用进度小窗复制进新 `Data`；旧数据不删；`library.json` 绝对路径改写；失败会清掉本次新增条目并提示，下次启动可重试。
+- **书库自包含**：启动时 `adoptExternalBooks()` 把 `Data` 外部的书复制进 `Data\books\{id}\source` 并改写路径；整个文件夹移动后，失效的绝对路径会按 `bookId` 自动找回 `Data` 内部文件。
+- **设置页**：删除「浏览选择新位置 / 改回默认 / 清理旧位置」，只保留只读路径框 +「打开数据文件夹」；`Data` 固定。
+- **数据入口显性化**：顶栏原来的两个无文字图标改为一个「我的数据」按钮；首页新增「我的数据」卡片（标题、完整路径、打开文件夹、备份/恢复、导入/导出数据）；阅读设置里也加「备份 / 恢复数据（导入导出）」。
+- **命名**：`containerDir=MoQiReader`、`programDir=Program`、`dataDir=Data`；`legacyDataDir=MoQiData` 仅用于旧布局兼容。
+
+### 修复（书架空状态）
+
+- **删掉最后一本书后卡在「正在整理书库」**：`useLibrary.load()` 以前发现书架为空就自动触发扫描，扫描失败/未结束时 `scanning` 会一直为真，空书架看不到「导入书籍」按钮。现在 `load()` 只读现有书库，不再自动扫描；`load`/`remove` 在任何情况下都会把 `scanning` 复位。
+- **删到一本不剩时回到初始导入样式**：书架清空时同时清掉搜索词、筛选和分类筛选，直接显示「书架还是空的 + 导入书籍」。
+- **还有书时正常删除**：只更新列表，不触发“整理书籍”；导入/切换格式才显示扫描状态。
+
+### 破坏性说明
+
+- 旧版 `%APPDATA%\MoQiData` / 自定义数据目录不再是运行位置；首次启动会复制进新 `Data`。
+- 旧版程序如果装在 `MoQiReader\墨栖.exe`，新版会装到 `MoQiReader\Program\墨栖.exe`；旧根目录程序文件需要手动删除（数据不受影响）。
+- `data-root.txt` 指针在 v0.8 单根布局中不再使用；迁移成功后清掉旧指针。
+
+### 测试
+
+- 旧布局数据/迁移测试 **117 项**通过。
+- 新单根布局测试 **29 项**通过：路径推导、容器改名、搬文件夹、旧数据迁移、外部书收编、失效路径修复。
+- 安装器路径测试 **14 项**通过（单输入 → `MoQiReader`，路径长度/非法字符/受保护目录/空目录）。
+- 打包版 UI 回归 **1 项**通过：真实启动 → 书架 → 更多操作 → 两次确认移除最后一本书 → 出现「书架还是空的」和可点击的「导入书籍」，且不出现「正在整理」。
+- `electron-builder --win` 编译通过；绿色版启动冒烟通过，`Program\墨栖.exe` 自动使用 `Data`，不再写 `%APPDATA%` 业务数据。
+
+### 牵连
+
+- `electron/store/layout.ts`（新）、`paths.ts`、`migrate.ts`（新）、`first-run.ts`（新）、`main.ts`、`ipc/index.ts`
+- `build/installer.nsh`（重写）、`scripts/gen-names.js`、`scripts/pack.js`
+- `src/components/reader/SettingsPanel.tsx`、`src/components/workspace/DataBackup.tsx`
+- `src/pages/Workspace.tsx`、`src/pages/Shelf.tsx`、`src/store/useLibrary.ts`
+- `src/components/workspace/WorkspaceOverview.tsx`、`src/components/shelf/EmptyShelf.tsx`
+- `scripts/test-single-root.js`（新）、`scripts/test-installer-paths.*`、`scripts/test-userdata.js`
+- `docs/03`、`docs/09`、`docs/10`、`docs/08`、`docs/07`、`README`、`AGENTS`、`package.json`
+
+---
+
+## 2026-11-21 · v0.7.0 数据位置安全收口（新增 / 修复）
+
+### 背景
+
+v0.6.0 已经有同页双路径、扁平 `MoQiData` 和设置内迁移，但三处还不够硬：
+
+1. 安装器数据区是「默认 / 自定义」单选，输入框默认空且禁用；默认态点「浏览」不会切到自定义，选择会被丢掉。
+2. 设置内遇到目标已有同名目录时只会拒绝，没有「复用 / 覆盖 / 重命名」；移动模式下次启动就删旧目录，失败回滚只覆盖了部分阶段。
+3. 命名还有一处混用：`paths.backups()` 指向 `backups`，`createSafetyBackup()` 却写 `_backups`，数据目录里会同时出现两个备份夹。
+
+### 改动
+
+**安装器（`build/installer.nsh`）**
+
+- 数据区去掉两个单选，输入框始终可编辑并预填 `%APPDATA%\MoQiData`；浏览选中后把最终路径直接写回输入框（不再在下方另设「实际安装到 / 将创建」预览行），离开页面按框内内容落地。
+- 新增 `MoqiIsInsideOrEqual`、`MoqiCheckPath`：拦截「程序/数据互相包含」、超过 240 字符、`< > " | ? *` 非法字符。
+- 修复 `MoqiProtectedCheck` 用 `$2/$3` 做临时变量、覆盖调用方数据目录的隐患；改为只用 `$R` 寄存器。
+- 数据目录等于默认位置时不写指针；选到具体文件夹原样使用，只有盘符根才追加 `MoQiReader`。
+- 页脚文案明确「升级安装不会移动数据；要换位置装好后在设置里改」。
+
+**设置内迁移（`electron/store/location.ts`、`electron/store/paths.ts`）**
+
+- 目标已存在时支持：**复用 / 覆盖（先改名备份） / 重命名 / 取消**；非墨栖的非空目录只允许重命名或取消，绝不覆盖。
+- 迁移前在 `backups/migration-<时间戳>/` 留 `library.json`、`settings.json`、`user/*.json` 和 `manifest.json` 快照。
+- 校验从「文件数量」升级为「数量 + 每文件大小 + JSON 可解析 + 书数一致 + 关键 JSON sha256」，坏掉的 `library.json` 会中止迁移并原样保留旧数据。
+- 目标盘剩余空间预检；跨盘复制不再依赖原地 rename。
+- 移动模式旧目录保留 **7 天**，设置页可「立即清理」或「保留，不清理」；复制模式旧目录永久保留。
+- 指针先写 `.tmp` 再原子替换；写新指针前记录 `data-root.previous.txt`；启动时新位置是空壳/打不开，会自动回退到有数据的上一位置并记录 `rolledBackFrom`。
+- 新增 `migration.json` 迁移日志与 `recoverInterruptedMigration()`：崩溃后清理临时目录、把已改名的旧目标改回去；不会主动删看起来像数据的目录。
+- 旧默认目录 `%APPDATA%\moqi-reader\data` 遇到空的 `%APPDATA%\MoQiData` 空壳时，会先清空壳再搬，不再出现「数据被藏起来」。
+
+**命名与数据域**
+
+- 安全备份统一写 `backups`；启动时把空的 `backups` 与旧的 `_backups` 做一次性归并，两者都有内容时保留旧目录不硬合并。
+- 新增 `exports/` 数据子目录；单本笔记导出默认落到 `MoQiData\exports\`，全部笔记导出对话框默认也指向这里。备份 ZIP 仍默认在「文档」，避免备份跟着数据目录一起丢。
+- 便携版「改回默认」按 `effectiveDefaultDataDir()` 走 `<exeDir>\MoQiData`，不再错误地搬去 `%APPDATA%`。
+
+**界面（`SettingsPanel`、`DataBackup`）**
+
+- 设置页的当前数据路径改为**只读输入框**，直接显示完整路径；点「浏览选择新位置」选完目录后，框内先显示最终目标 `<上级>\MoQiData`，再弹确认框；取消恢复原路径。
+- 「更改」统一改为「浏览选择新位置」；显示旧位置保留倒计时、迁移失败原因。
+- 迁移确认框列出当前/目标/数据量/剩余空间，明确「复制保留旧数据」「移动保留 7 天」。
+- 修复复制模式仍提示「下次启动清理」的错误文案；修复目标已有非墨栖文件时点完确认没有任何提示的静默失败。
+
+### 修复
+
+- 安装器默认态点「浏览」不生效。
+- `MoqiProtectedCheck` 覆盖 `$3`，可能导致后续「是否已有数据」判断用错路径。
+- 空壳指针 / 空壳默认目录导致书架看起来空了（数据其实还在）。
+- 迁移失败时指针可能指向新位置；现在按 `current.isCustom` 复位。
+- `backups` / `_backups` 双目录混用。
+
+### 验证
+
+- `tsc --noEmit -p tsconfig.json`、`tsc -p tsconfig.electron.json`、`vite build` 通过。
+- 数据测试扩展为 **117 项**：新增复用/覆盖/重命名、保留期、立即清理、快照、坏 JSON、上一位置、空壳回退、崩溃恢复、`_backups` 归并、`exports` 导出等用例，全部通过。
+- 新增安装器逻辑测试 **22 项**（`scripts/test-installer-paths.js`）：真编 NSIS + 真运行，覆盖 `D:\` / `D:` / `D:\Apps` / `E:\MoQiData` 追加规则、`D:\Apps2` 前缀误判、路径长度/非法字符、受保护目录、空目录判断。**这项测试抓到了 v0.6 安装器 `GetFileName` 参数写反导致数据目录变成 `3\MoQiData` 的真实 bug**，已修复。
+- `electron-builder --win` 成功编译 NSIS 安装包（v0.7.0），自定义页与卸载页均通过编译。
+- 绿色版按 `scripts/pack.js` 同流程构建，并在临时目录启动冒烟：程序旁正确创建 `MoQiData`（`library.json` / `books` / `user` / `backups` / `exports` / `logs` / `.moqi-data`），不会写进程序目录。
+
+### 牵连
+
+- `build/installer.nsh`、`electron/store/paths.ts`、`electron/store/location.ts`、`electron/store/json.ts`
+- `electron/ipc/index.ts`、`electron/preload.ts`、`src/lib/ipc.ts`
+- `src/components/reader/SettingsPanel.tsx`、`src/components/workspace/DataBackup.tsx`
+- `electron/store/backup.ts`、`electron/store/userdata.ts`
+- `scripts/test-userdata.js`、`scripts/test-installer-paths.js`、`scripts/test-installer-paths.nsi`
+- `docs/01`、`docs/02`、`docs/03`、`docs/07`、`docs/08`、`docs/09`、`docs/10`、`docs/11`、`README`
+- `release/Moqi-0.7.0-Setup.exe`、`release/Moqi-0.7.0-portable.7z`
+
+---
+
+## 2026-11-21 · v0.6.0 命名收敛与扁平数据目录（重构 / BREAKING）
+
+### 背景
+
+v0.5.1 的数据目录是 `MoQiData\data`，两层 data 重复；安装器把程序页和数据页拆成两页；
+程序目录只要末级不是固定名就再追加一层，选了具体文件夹也会被套娃。用户要求「最通透、
+最见名知意」的命名，并把目录 / 安装 / 迁移整套一次性做完。
+
+### 改动
+
+- **三个名字彻底分开**：程序 `MoQiReader`（安装目录）、配置 `moqi-reader`
+  （`%APPDATA%` 下只放 `data-root.txt` 与 `boot.log`）、数据 `MoQiData`。
+- **数据布局扁平化（BREAKING）**：`MoQiData\library.json` / `books` / `user` /
+  `backups` / `logs` 直接放数据目录，不再有内层 `data`。
+  `paths.ts` 的 `DataRootInfo` 增加 `layout: 'flat' | 'nested'`；
+  启动时把旧 `%APPDATA%\moqi-reader\data` 同盘 rename 成 `%APPDATA%\MoQiData`，
+  rename 失败继续用旧目录；旧的「容器 + data」指针按 `nested` 解析，老数据不丢。
+- **安装器同页双路径**：`build/installer.nsh` 两个 `Page custom` 合并为一个
+  `MoqiPathsPage`，同页展示程序目录与数据目录，各自实时预览、受保护目录拦截、
+  非空文件夹提示；升级 / 已有数据时整页只读汇总。
+- **程序目录追加规则**：只有选到盘符根（`D:` / `D:\`）才追加 `MoQiReader`；
+  选具体文件夹原样使用，不再嵌套。
+- **安装器 / 卸载按扁平结构落盘**：写指针直接指向数据目录，创建 `MoQiData` 并写
+  `.moqi-data`（`layout: flat, version: 2`）；卸载同时认得 flat 与 nested 两种布局。
+- **迁移适配扁平**：`location.ts` 的 `planDataLocation` 让 `dataDir === root`，
+  临时副本放在目标**同级**再 rename 落位（子目录改名成父目录会失败）；
+  `isMoqiDataDir` 兼容旧 nested 容器；marker 与 `paths.ts` 统一为 version 2。
+- **UI 文案**：阅读设置「数据」说明改为「书架、笔记、书文件都直接放在里面」。
+
+### 修复
+
+- `paths.ts` 已是扁平结构、但 `location.ts` / 安装器 / 测试仍按 `MoQiData\data` 处理，
+  迁移后数据会落错位置（本轮一次性对齐）。
+- 安装器写指针指向「容器」而非数据目录，与新解析逻辑不一致。
+
+### 牵连
+
+- `electron/store/paths.ts`（v0.6 扁平 + nested 兼容）、`location.ts`、`ipc/index.ts`
+- `build/installer.nsh`（重写）、`src/components/reader/SettingsPanel.tsx`
+- 测试：`npm run test:data` 71 项（新增扁平布局、标记版本、旧布局兼容断言）
+- 文档：`README`、`CHANGELOG`、`AGENTS`、`03`、`08`、`09`、`10`、`11`、
+  `releases/v0.6.0.md`
+
+---
+
 ## 2026-11-21 · v0.5.1 安装器双路径与数据目录（新增 / 修复）
 
 ### 背景

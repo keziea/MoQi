@@ -61,7 +61,8 @@ export function removeNote(bookId: string, noteId: string): boolean {
 /** 导出为 Markdown 文件，返回路径 */
 export function exportNotes(bookId: string, bookTitle: string, targetDir?: string): string {
   const notes = listNotes(bookId);
-  const dir = targetDir || paths.user();
+  // 导出物属于数据域，统一放 MoQiData\exports，不再混进 user\（user 只放进度/笔记/会话）
+  const dir = targetDir || paths.exports();
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
   const lines: string[] = [`# ${bookTitle} · 笔记`, ''];

@@ -51,6 +51,14 @@ export function Shelf({ onOpen, embedded = false }: ShelfProps) {
     void useLibrary.getState().refreshProgress();
   }, []);
 
+  // 删到一本不剩时，回到最初的“导入第一本书”状态，不残留上一次的搜索/筛选
+  useEffect(() => {
+    if (books.length > 0) return;
+    setQuery('');
+    setFilter('all');
+    setCatFilter('all');
+  }, [books.length]);
+
   const groups = useMemo(() => groupBooks(books, progressMap), [books, progressMap]);
 
   /** 同一本书可能有多个格式副本，进度可能记在任意一个 id 上 */

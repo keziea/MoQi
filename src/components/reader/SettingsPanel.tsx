@@ -3,13 +3,14 @@ import type { FontKind, Settings, ThemeName } from '@shared/models';
 import { Sheet } from '@/components/ui/Sheet';
 import { Icon } from '@/components/ui/Icon';
 import { ipc, type DataLocationInfo } from '@/lib/ipc';
-import { DATA_DIR_NAME } from '@shared/names.generated';
 
 interface Props {
   open: boolean;
   onClose: () => void;
   settings: Settings;
   update: (patch: Partial<Settings>) => void;
+  /** 打开「我的数据」面板（备份 / 恢复） */
+  onOpenData?: () => void;
 }
 
 const THEMES: { key: ThemeName; label: string; bg: string; fg: string }[] = [
@@ -57,31 +58,15 @@ const SHORTCUTS: [string, string][] = [
   ['F11', '全屏'],
 ];
 
-export function SettingsPanel({ open, onClose, settings, update }: Props) {
+export function SettingsPanel({ open, onClose, settings, update, onOpenData }: Props) {
   const [location, setLocation] = useState<DataLocationInfo | null>(null);
   const [version, setVersion] = useState('');
-  const [moving, setMoving] = useState(false);
-  const [restarting, setRestarting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setRestarting(false);
     ipc.location.info().then(setLocation).catch(() => setLocation(null));
     ipc.app.info().then((info) => setVersion(info.version)).catch(() => setVersion(''));
   }, [open]);
-
-  async function handleChangeLocation() {
-    if (moving) return;
-    setMoving(true);
-    try {
-      const r = await ipc.location.change();
-      if (r.ok) setRestarting(true);
-    } catch {
-      /* 对话框里已经有提示，这里不重复 */
-    } finally {
-      setMoving(false);
-    }
-  }
 
   return (
     <Sheet open={open} onClose={onClose} title="阅读设置" subtitle="改动立即生效">
@@ -250,36 +235,27 @@ export function SettingsPanel({ open, onClose, settings, update }: Props) {
         <div className="rounded-[10px] border border-line px-3 py-2.5">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[12px] text-ink-2">数据存放位置</span>
-            <button
-              type="button"
-              onClick={handleChangeLocation}
-              disabled={moving}
-              className="shrink-0 text-[11.5px] font-medium disabled:opacity-50"
-              style={{ color: 'var(--accent)' }}
-            >
-              {moving ? '迁移中…' : '更改'}
-            </button>
+            <span className="shrink-0 text-[10.5px] text-ink-3">固定</span>
           </div>
-          <div className="mt-1 break-all text-[10.5px] leading-relaxed text-ink-3">
-            {location?.dataDir ?? '正在读取…'}
-          </div>
+          <input
+            readOnly
+            value={location?.dataDir ?? ''}
+            placeholder="正在读取…"
+            aria-label="当前数据目录"
+            title={location?.dataDir ?? ''}
+            onFocus={(e) => e.currentTarget.select()}
+            className="mt-1 w-full rounded-[7px] border border-line px-2 py-1.5 text-[10.5px] leading-relaxed text-ink-2 outline-none"
+            style={{ background: 'var(--surface-sunken)' }}
+          />
           <div className="mt-1 text-[10.5px] leading-relaxed text-ink-3">
-            更改后会在你选的目录里新建 {location?.folderName ?? DATA_DIR_NAME} 文件夹，数据放在它下面的 data
-            里；搬完墨栖会自动重启。
+            数据固定在软件目录的 Data 文件夹里，和程序一起移动；设置里不能单独改。
           </div>
+          {location?.unavailable && (
+            <div className="mt-1 break-all text-[10.5px] leading-relaxed" style={{ color: 'var(--danger)' }}>
+              数据目录现在打不开：{location.unavailable}
+            </div>
+          )}
         </div>
-
-        {restarting && (
-          <div
-            className="mt-2 rounded-[10px] px-3 py-2 text-[11px] leading-relaxed"
-            style={{
-              background: 'color-mix(in srgb, var(--success) 8%, transparent)',
-              color: 'var(--success)',
-            }}
-          >
-            数据已搬好，墨栖正在重启…
-          </div>
-        )}
 
         <button
           className="mt-2 flex w-full items-center justify-between rounded-[10px] border border-line px-3 py-2.5 text-[12px] text-ink-2 transition-colors hover:bg-surface"
@@ -288,6 +264,15 @@ export function SettingsPanel({ open, onClose, settings, update }: Props) {
           <span>打开数据文件夹</span>
           <Icon name="folder" size={15} />
         </button>
+        {onOpenData && (
+          <button
+            className="mt-2 flex w-full items-center justify-between rounded-[10px] border border-line px-3 py-2.5 text-[12px] text-ink-2 transition-colors hover:bg-surface"
+            onClick={onOpenData}
+          >
+            <span>备份 / 恢复数据（导入导出）</span>
+            <Icon name="import" size={15} />
+          </button>
+        )}
         <p className="mt-2.5 text-[10.5px] leading-relaxed text-ink-3">
           墨栖{version ? ` v${version}` : ''} · 书籍、笔记、进度全部保存在本机
         </p>

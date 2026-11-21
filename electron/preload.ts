@@ -62,8 +62,11 @@ const api = {
   },
   location: {
     info: () => ipcRenderer.invoke('location:info'),
-    change: () => ipcRenderer.invoke('location:change'),
+    pick: () => ipcRenderer.invoke('location:pick'),
+    change: (opts?: { parent?: string }) => ipcRenderer.invoke('location:change', opts ?? {}),
     reset: () => ipcRenderer.invoke('location:reset'),
+    cleanupNow: () => ipcRenderer.invoke('location:cleanupNow'),
+    cancelCleanup: () => ipcRenderer.invoke('location:cancelCleanup'),
   },
   app: {
     info: () => ipcRenderer.invoke('app:info'),

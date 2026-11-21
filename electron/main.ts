@@ -1,24 +1,50 @@
-import { app, BrowserWindow, Menu, net, protocol } from 'electron';
+import { app, BrowserWindow, Menu, dialog, net, protocol } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { paths, ensureDirs, logError, getDataRootInfo } from './store/paths';
-import { APP_NAME_EN } from '../shared/names.generated';
-import { cleanupPreviousDataDir } from './store/location';
+import { paths, ensureDirs, logError, getDataRootInfo, configureRuntimePaths } from './store/paths';
+import { cleanupPreviousDataDir, recoverInterruptedMigration } from './store/location';
+import { prepareDataLayout } from './first-run';
 import { getSettings, saveSettings } from './store/userdata';
 import { registerIpc, setMainWindow, runScan } from './ipc';
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 
-/** 启动自检日志：打包版若启动即退，用它定位停在哪一步 */
+// v0.8：把 Electron 的 userData / sessionData 指到 <Data>\runtime。
+// 必须在 requestSingleInstanceLock() 之前完成，否则单实例锁会落在旧的 AppData 位置。
+const runtimePaths = configureRuntimePaths();
+
+/** 启动自检日志：放在数据域 logs，整个绿色版目录搬走时日志也跟着走 */
 function bootLog(msg: string) {
   try {
-    const dir = path.join(process.env.APPDATA || process.env.HOME || '.', APP_NAME_EN);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const dir = paths.logs();
+    fs.mkdirSync(dir, { recursive: true });
     fs.appendFileSync(path.join(dir, 'boot.log'), `[${new Date().toISOString()}] ${msg}\n`, 'utf8');
   } catch {
-    /* 日志失败不影响启动 */
+    try {
+      const fallback = path.join(process.env.TEMP || '.', 'moqi-boot.log');
+      fs.appendFileSync(fallback, `[${new Date().toISOString()}] ${msg}\n`, 'utf8');
+    } catch {
+      /* 日志失败不影响启动 */
+    }
   }
+}
+
+if (!runtimePaths.ok) {
+  const message = [
+    '这个位置写不进数据。',
+    '',
+    `程序目录：${paths.program() || '(未知)'}`,
+    `数据目录：${paths.data() || '(未知)'}`,
+    '',
+    '请把整个 MoQiReader 文件夹移到 D 盘或用户目录这类可写位置，不要放在 Program Files、Windows 或只读 U 盘里。',
+    '',
+    runtimePaths.error ? `系统错误：${runtimePaths.error}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+  dialog.showErrorBox('墨栖无法启动', message);
+  app.exit(1);
 }
 
 bootLog(
@@ -206,6 +232,10 @@ if (!gotLock) {
 
   app.whenReady().then(async () => {
     bootLog('ready');
+    // v0.8：旧数据搬进固定 Data；把外部书收进 Data\books；移动文件夹后的路径修复
+    await prepareDataLayout();
+    // 上次迁移如果在 rename / 写指针之间中断，先把现场还原（只做安全动作）
+    recoverInterruptedMigration();
     ensureDirs();
     cleanupPreviousDataDir();
     bootLog(`dirs ok root=${getDataRootInfo().root}`);

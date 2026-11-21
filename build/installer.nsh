@@ -1,396 +1,330 @@
 ; ═══════════════════════════════════════════════════════════════
-; 墨栖安装器 · 程序位置 + 数据位置 + 卸载数据选项
+; 墨栖 v0.8 安装器 · 单输入、固定两子目录
 ;
-; 规则（与 docs/10 一致）：
-;   · 程序目录：用户只选根，末级固定为 ${PROGRAM_DIR_NAME}
-;   · 数据根目录：末级固定为 ${DATA_DIR_NAME}，用户只能选上级
-;   · 数据与程序解耦；升级不移动数据
-;   · 卸载默认保留数据，勾选并二次确认才删
+; 用户只选一个上级位置，安装器自动创建：
 ;
-; 名字全部来自 build/folder-names.nsh（由 scripts/gen-names.js 生成）
+;   <上级>\MoQiReader\
+;   ├── Program\    ← 程序本体（exe / resources / locales）
+;   └── Data\       ← 全部用户数据（library / books / user / backups / exports / logs）
+;
+; 规则：
+;   · 选到盘符根 D:\       → D:\MoQiReader
+;   · 选到 D:\Apps         → D:\Apps\MoQiReader
+;   · 选到 D:\Apps\MoQiReader → 不再套一层
+;   · Data 固定；不写指针，不写 %APPDATA%；设置里也不能改。
+;   · Program Files / Windows / 系统盘根一律拦截（数据要写在程序旁边，普通账户写不进去）。
+;   · 升级只覆盖 Program，Data 不动；卸载默认保留 Data。
+;
+; 名字来自 build/folder-names.nsh（由 scripts/gen-names.js 生成）
 ; ═══════════════════════════════════════════════════════════════
 
 !include "MUI2.nsh"
 !include "nsDialogs.nsh"
 !include "LogicLib.nsh"
 !include "FileFunc.nsh"
-!include "WinMessages.nsh"
 !include "folder-names.nsh"
 
 !ifndef BUILD_UNINSTALLER
 
-; ───────────────────────── 变量 ─────────────────────────
-
-Var MoqiProgPage
-Var MoqiProgRoot
-Var MoqiProgPreview
-Var MoqiProgWarn
-
-Var MoqiDataPage
-Var MoqiDataDefaultRadio
-Var MoqiDataCustomRadio
-Var MoqiDataParent
-Var MoqiDataPreview
-Var MoqiDataWarn
-
-Var MoqiHasExisting
-Var MoqiExistingRoot
+Var MoqiRootEdit
+Var MoqiRootWarn
+Var MoqiFinalRoot
 
 ; ───────────────────── 页面注册 ─────────────────────
 
 !macro customPageAfterChangeDir
-  Page custom MoqiProgramPageCreate MoqiProgramPageLeave
-  Page custom MoqiDataPageCreate MoqiDataPageLeave
+  Page custom MoqiPathsPageCreate MoqiPathsPageLeave
 !macroend
 
 ; ───────────────────── 小工具 ─────────────────────
 
-; $0 = 上级目录, $1 = 固定末级名 → $2 = 最终路径（自动去尾斜杠、避免重复拼）
-Function MoqiJoinFixed
-  StrCpy $3 $0 1 -1
-  ${If} $3 == "\"
-    StrCpy $0 $0 -1
+; $0 in/out：去掉尾部反斜杠；"D:\" → "D:"
+Function MoqiNormalize
+  StrLen $4 "$0"
+  ${If} $4 == 0
+    Return
   ${EndIf}
-  ${GetFileName} $3 "$0"
-  ${If} $3 == "$1"
-    StrCpy $2 "$0"
-  ${Else}
-    StrCpy $2 "$0\$1"
+  StrCpy $5 "$0" 1 -1
+  ${If} $5 == "\"
+    StrCpy $0 "$0" -1
   ${EndIf}
 FunctionEnd
 
-; $R0 = 待检查路径 → $R1 = "1"/"0"
+; $0 = 用户选的上级 → $2 = 软件容器目录（末级固定 MoQiReader）
+Function MoqiJoinContainer
+  Call MoqiNormalize
+  ${GetFileName} "$0" $4
+  ${If} $4 == "${CONTAINER_DIR_NAME}"
+    StrCpy $2 "$0"
+  ${Else}
+    StrCpy $2 "$0\${CONTAINER_DIR_NAME}"
+  ${EndIf}
+FunctionEnd
+
+; $R0 = 待检查路径 → $R1 = "1"（受保护）/"0"
 Function MoqiProtectedCheck
   StrCpy $R1 "0"
 
-  StrLen $2 "$PROGRAMFILES"
-  StrCpy $3 "$R0" $2
-  ${If} $3 == "$PROGRAMFILES"
+  StrLen $R3 "$PROGRAMFILES"
+  StrCpy $R4 "$R0" $R3
+  ${If} $R4 == "$PROGRAMFILES"
     StrCpy $R1 "1"
     Return
   ${EndIf}
 
-  StrLen $2 "$PROGRAMFILES64"
-  StrCpy $3 "$R0" $2
-  ${If} $3 == "$PROGRAMFILES64"
+  StrLen $R3 "$PROGRAMFILES64"
+  StrCpy $R4 "$R0" $R3
+  ${If} $R4 == "$PROGRAMFILES64"
     StrCpy $R1 "1"
     Return
   ${EndIf}
 
-  StrLen $2 "$WINDIR"
-  StrCpy $3 "$R0" $2
-  ${If} $3 == "$WINDIR"
+  StrLen $R3 "$WINDIR"
+  StrCpy $R4 "$R0" $R3
+  ${If} $R4 == "$WINDIR"
     StrCpy $R1 "1"
     Return
   ${EndIf}
 
   ; 系统盘根：C:\ 或 C:
-  StrCpy $1 "$WINDIR" 2
-  StrLen $2 "$R0"
-  ${If} $2 <= 3
-    StrCpy $3 "$R0" 2
-    ${If} $3 == "$1"
+  StrCpy $R3 "$WINDIR" 2
+  StrLen $R4 "$R0"
+  ${If} $R4 <= 3
+    StrCpy $R5 "$R0" 2
+    ${If} $R5 == "$R3"
       StrCpy $R1 "1"
     ${EndIf}
   ${EndIf}
 FunctionEnd
 
-; ═════════════════════ ① 程序位置 ═════════════════════
-
-Function MoqiProgramPageCreate
-  ; 升级安装：$INSTDIR 已由注册表还原，且 exe 还在 → 跳过此页
-  IfFileExists "$INSTDIR\${PRODUCT_FILENAME}.exe" 0 moqiProgFresh
-    Abort
-moqiProgFresh:
-
-  !insertmacro MUI_HEADER_TEXT "选择程序安装位置" "程序文件只放在这里；书和笔记在下一页单独选。"
-
-  nsDialogs::Create 1018
-  Pop $MoqiProgPage
-  ${If} $MoqiProgPage == error
-    Abort
-  ${EndIf}
-
-  ; 默认根 = $INSTDIR 的父目录（通常是 ...\Programs）
-  ${GetParent} "$INSTDIR" $MoqiProgRoot
-
-  ${NSD_CreateLabel} 0 0 100% 22u "选一个根目录，${PRODUCT_NAME} 会在里面创建固定的 ${PROGRAM_DIR_NAME} 文件夹。"
-  Pop $0
-
-  ${NSD_CreateDirRequest} 0 26u 78% 13u "$MoqiProgRoot"
-  Pop $MoqiProgRoot
-  ${NSD_OnChange} $MoqiProgRoot MoqiProgRefresh
-
-  ${NSD_CreateBrowseButton} 79% 26u 21% 13u "浏览..."
-  Pop $0
-  ${NSD_OnClick} $0 MoqiProgBrowse
-
-  ${NSD_CreateLabel} 0 46u 100% 30u ""
-  Pop $MoqiProgPreview
-
-  ${NSD_CreateLabel} 0 78u 100% 26u ""
-  Pop $MoqiProgWarn
-
-  Call MoqiProgRefresh
-  nsDialogs::Show
-FunctionEnd
-
-Function MoqiProgRefresh
-  ${NSD_GetText} $MoqiProgRoot $0
-  ${If} $0 == ""
-    ${NSD_SetText} $MoqiProgPreview "请选择一个安装位置。"
-    ${NSD_SetText} $MoqiProgWarn ""
+; $R0 = path → $R2 = "1"（超过 240 字符 / 含 < > " | ? *）
+Function MoqiCheckPath
+  StrCpy $R2 "0"
+  StrLen $R3 "$R0"
+  ${If} $R3 > 240
+    StrCpy $R2 "1"
     Return
   ${EndIf}
 
-  StrCpy $1 "${PROGRAM_DIR_NAME}"
-  Call MoqiJoinFixed
-  ${NSD_SetText} $MoqiProgPreview "程序会安装到：$2"
-
-  StrCpy $3 ""
-  IfFileExists "$2\*.*" 0 +2
-    StrCpy $3 "这个位置已经有 ${PROGRAM_DIR_NAME}，继续会更新程序文件；书和笔记在数据目录里，不受影响。"
-  ${NSD_SetText} $MoqiProgWarn "$3"
+  StrCpy $R4 "0"
+  moqiPathCharLoop:
+    StrCpy $R5 "$R0" 1 $R4
+    ${If} $R5 == ""
+      Goto moqiPathCharDone
+    ${EndIf}
+    ${If} $R5 == "<"
+    ${OrIf} $R5 == ">"
+    ${OrIf} $R5 == "$\""
+    ${OrIf} $R5 == "|"
+    ${OrIf} $R5 == "?"
+    ${OrIf} $R5 == "*"
+      StrCpy $R2 "1"
+      Goto moqiPathCharDone
+    ${EndIf}
+    IntOp $R4 $R4 + 1
+    Goto moqiPathCharLoop
+  moqiPathCharDone:
 FunctionEnd
 
-Function MoqiProgBrowse
-  ${NSD_GetText} $MoqiProgRoot $0
-  nsDialogs::SelectFolderDialog "选择程序安装位置" "$0"
+; $R0 = dir → $R2 = "1"（目录里有任何文件或子目录）
+Function MoqiDirHasEntries
+  StrCpy $R2 "0"
+  ClearErrors
+  FindFirst $R3 $R4 "$R0\*.*"
+  IfErrors moqiDirEntryDone
+  moqiDirEntryLoop:
+    ${If} $R4 == ""
+      Goto moqiDirEntryDone
+    ${EndIf}
+    ${If} $R4 != "."
+    ${AndIf} $R4 != ".."
+      StrCpy $R2 "1"
+      Goto moqiDirEntryDone
+    ${EndIf}
+    FindNext $R3 $R4
+    Goto moqiDirEntryLoop
+  moqiDirEntryDone:
+  FindClose $R3
+FunctionEnd
+
+; ═════════════════════ 安装页：只选一个上级 ═════════════════════
+
+Function MoqiPathsPageCreate
+  !insertmacro MUI_HEADER_TEXT "选择安装位置" "墨栖会自动创建 MoQiReader，并在里面分好程序和数据。"
+
+  nsDialogs::Create 1018
+  Pop $0
+  ${If} $0 == error
+    Abort
+  ${EndIf}
+
+  ${NSD_CreateLabel} 0 0 100% 10u "安装位置（软件目录）"
+  Pop $0
+
+  ${NSD_CreateDirRequest} 0 12u 77% 12u "$LOCALAPPDATA\Programs\${CONTAINER_DIR_NAME}"
+  Pop $MoqiRootEdit
+  ${NSD_OnChange} $MoqiRootEdit MoqiRefresh
+
+  ${NSD_CreateBrowseButton} 78% 12u 22% 12u "浏览..."
+  Pop $0
+  ${NSD_OnClick} $0 MoqiBrowse
+
+  ${NSD_CreateLabel} 0 28u 100% 14u "会自动创建两个文件夹：Program（程序本体）和 Data（书、笔记、备份、日志）。$\r$\n数据固定跟在软件目录里，以后整个 MoQiReader 文件夹一起搬即可。"
+  Pop $0
+
+  ${NSD_CreateLabel} 0 46u 100% 18u ""
+  Pop $MoqiRootWarn
+
+  ${NSD_CreateLabel} 0 68u 100% 28u "安装位置必须可写：不要选 Program Files、Windows 或系统盘根。$\r$\n升级只覆盖 Program，Data 不会被删除；卸载默认也保留 Data。"
+  Pop $0
+
+  Call MoqiRefresh
+  nsDialogs::Show
+FunctionEnd
+
+Function MoqiRefresh
+  ${NSD_GetText} $MoqiRootEdit $0
+  ${If} $0 == ""
+    StrCpy $MoqiFinalRoot ""
+    ${NSD_SetText} $MoqiRootWarn "请选择一个安装位置。"
+    Return
+  ${EndIf}
+
+  Call MoqiJoinContainer
+  StrCpy $MoqiFinalRoot "$2"
+
+  StrCpy $3 ""
+  StrCpy $R0 "$2"
+  Call MoqiCheckPath
+  ${If} $R2 == "1"
+    StrCpy $3 "路径太长或包含 Windows 不允许的字符，请换一个位置。"
+  ${EndIf}
+
+  StrCpy $R0 "$2"
+  Call MoqiProtectedCheck
+  ${If} $R1 == "1"
+    StrCpy $3 "不要放在 Program Files / Windows / 系统盘根：数据要写在程序旁边，普通账户写不进去。"
+  ${EndIf}
+
+  ${If} $3 == ""
+    IfFileExists "$2\${PROGRAM_DIR_NAME}\${PRODUCT_FILENAME}.exe" 0 moqiCheckOld
+      StrCpy $3 "检测到已安装的墨栖，将更新 Program；Data 不动。"
+      Goto moqiRefreshDone
+  moqiCheckOld:
+    IfFileExists "$2\${PRODUCT_FILENAME}.exe" 0 moqiCheckData
+      StrCpy $3 "检测到旧版程序在 MoQiReader 根目录；新版会装到 Program 子目录，旧文件可在安装后手动删除。"
+      Goto moqiRefreshDone
+  moqiCheckData:
+    IfFileExists "$2\${DATA_DIR_NAME}\library.json" 0 moqiCheckMarker
+      StrCpy $3 "这个位置已有 Data 数据，将直接复用。"
+      Goto moqiRefreshDone
+  moqiCheckMarker:
+    IfFileExists "$2\${DATA_DIR_NAME}\.moqi-data" 0 moqiCheckNonEmpty
+      StrCpy $3 "这个位置已经有 Data 文件夹，将直接复用。"
+      Goto moqiRefreshDone
+  moqiCheckNonEmpty:
+    StrCpy $R0 "$2"
+    Call MoqiDirHasEntries
+    ${If} $R2 == "1"
+      StrCpy $3 "这个文件夹不是空的：如果里面是别的软件，请换一个上级目录。"
+    ${EndIf}
+  moqiRefreshDone:
+  ${EndIf}
+
+  ${NSD_SetText} $MoqiRootWarn "$3"
+FunctionEnd
+
+Function MoqiBrowse
+  ${NSD_GetText} $MoqiRootEdit $0
+  ${If} $0 == ""
+    StrCpy $0 "$LOCALAPPDATA\Programs"
+  ${EndIf}
+  nsDialogs::SelectFolderDialog "选择安装位置" "$0"
   Pop $0
   ${If} $0 != ""
   ${AndIf} $0 != "error"
-    ${NSD_SetText} $MoqiProgRoot "$0"
-    Call MoqiProgRefresh
+    ; 选完把最终软件目录直接写回框里
+    Call MoqiJoinContainer
+    ${NSD_SetText} $MoqiRootEdit "$2"
+    Call MoqiRefresh
   ${EndIf}
 FunctionEnd
 
-Function MoqiProgramPageLeave
-  ${NSD_GetText} $MoqiProgRoot $0
+Function MoqiPathsPageLeave
+  ${NSD_GetText} $MoqiRootEdit $0
   ${If} $0 == ""
-    MessageBox MB_ICONEXCLAMATION|MB_OK "请先选择程序安装位置。"
+    MessageBox MB_ICONEXCLAMATION|MB_OK "请先选择安装位置。"
     Abort
   ${EndIf}
 
-  StrCpy $1 "${PROGRAM_DIR_NAME}"
-  Call MoqiJoinFixed
-  StrCpy $INSTDIR "$2"
+  Call MoqiJoinContainer
+  StrCpy $MoqiFinalRoot "$2"
+  ${NSD_SetText} $MoqiRootEdit "$MoqiFinalRoot"
 
-  StrCpy $R0 "$INSTDIR"
+  StrCpy $R0 "$MoqiFinalRoot"
+  Call MoqiCheckPath
+  ${If} $R2 == "1"
+    MessageBox MB_ICONSTOP|MB_OK "安装位置太长或包含 Windows 不允许的字符：$\r$\n$MoqiFinalRoot"
+    Abort
+  ${EndIf}
+
+  StrCpy $R0 "$MoqiFinalRoot"
   Call MoqiProtectedCheck
   ${If} $R1 == "1"
-    MessageBox MB_ICONSTOP|MB_OK "不要放在系统受保护目录：$\r$\n$INSTDIR$\r$\n$\r$\n普通账户写入会被 Windows 虚拟化重定向，更新和读写都会出问题。请换到用户目录或 D 盘。"
+    MessageBox MB_ICONSTOP|MB_OK "不要放在系统受保护目录：$\r$\n$MoqiFinalRoot$\r$\n$\r$\n数据要写在程序旁边，普通账户写不进去。请换到 D 盘或用户目录。"
     Abort
   ${EndIf}
+
+  ; 如果 Data 已经存在但不是墨栖数据，避免误覆盖
+  IfFileExists "$MoqiFinalRoot\${DATA_DIR_NAME}\.moqi-data" moqiDataOk
+  IfFileExists "$MoqiFinalRoot\${DATA_DIR_NAME}\library.json" moqiDataOk
+  StrCpy $R0 "$MoqiFinalRoot\${DATA_DIR_NAME}"
+  Call MoqiDirHasEntries
+  ${If} $R2 == "1"
+    MessageBox MB_ICONSTOP|MB_OK "这个位置已经有 Data 文件夹，但看起来不是墨栖的数据：$\r$\n$MoqiFinalRoot\${DATA_DIR_NAME}$\r$\n$\r$\n为避免误覆盖，请换一个安装位置。"
+    Abort
+  ${EndIf}
+  moqiDataOk:
+
+  ; 真正的安装目录是 容器\Program；先定 $INSTDIR，再创建
+  StrCpy $INSTDIR "$MoqiFinalRoot\${PROGRAM_DIR_NAME}"
 
   ClearErrors
   CreateDirectory "$INSTDIR"
-  IfErrors moqiProgCreateFailed
+  IfErrors moqiCreateFailed
+  CreateDirectory "$MoqiFinalRoot\${DATA_DIR_NAME}"
+  IfErrors moqiCreateFailed
+
+  ; 打标记，卸载/迁移靠它认目录
+  IfFileExists "$MoqiFinalRoot\${DATA_DIR_NAME}\.moqi-data" moqiMarkerDone
+    FileOpen $9 "$MoqiFinalRoot\${DATA_DIR_NAME}\.moqi-data" w
+    IfErrors moqiMarkerDone
+    FileWrite $9 `{"app":"${APP_NAME_EN}","kind":"data-dir","layout":"flat","version":3}`
+    FileClose $9
+  moqiMarkerDone:
   Return
 
-moqiProgCreateFailed:
-  MessageBox MB_ICONSTOP|MB_OK "无法在这里创建文件夹：$\r$\n$INSTDIR$\r$\n$\r$\n请换一个位置，或检查权限。"
+moqiCreateFailed:
+  MessageBox MB_ICONSTOP|MB_OK "无法在这里创建文件夹：$\r$\n$MoqiFinalRoot$\r$\n$\r$\n请换一个位置，或检查权限。"
   Abort
-FunctionEnd
-
-; ═════════════════════ ② 数据位置 ═════════════════════
-
-Function MoqiDataPageCreate
-  ; 检测是否已有数据（升级 / 重装）
-  StrCpy $MoqiHasExisting "0"
-  StrCpy $MoqiExistingRoot ""
-  IfFileExists "$APPDATA\${APP_NAME_EN}\data-root.txt" 0 moqiNoPointer
-    FileOpen $1 "$APPDATA\${APP_NAME_EN}\data-root.txt" r
-    FileRead $1 $MoqiExistingRoot
-    FileClose $1
-    StrCpy $MoqiExistingRoot "$MoqiExistingRoot\data"
-    StrCpy $MoqiHasExisting "1"
-    Goto moqiAfterDetect
-moqiNoPointer:
-  IfFileExists "$APPDATA\${APP_NAME_EN}\data\*.*" 0 moqiAfterDetect
-    StrCpy $MoqiExistingRoot "$APPDATA\${APP_NAME_EN}\data"
-    StrCpy $MoqiHasExisting "1"
-moqiAfterDetect:
-
-  ; 已有数据：只汇总，不移动
-  ${If} $MoqiHasExisting == "1"
-    !insertmacro MUI_HEADER_TEXT "确认程序与数据位置" "已有数据不会被移动"
-    nsDialogs::Create 1018
-    Pop $MoqiDataPage
-    ${If} $MoqiDataPage == error
-      Abort
-    ${EndIf}
-    ${NSD_CreateLabel} 0 0 100% 70u "程序会安装到：$INSTDIR$\r$\n$\r$\n现有数据位置：$MoqiExistingRoot$\r$\n安装不会移动数据。要换位置，装好后在「阅读设置 → 数据」里改，${PRODUCT_NAME} 会自动搬过去。"
-    Pop $0
-    nsDialogs::Show
-    Return
-  ${EndIf}
-
-  ; 全新安装：默认系统位置 / 自定义
-  !insertmacro MUI_HEADER_TEXT "选择数据存放位置" "书架、笔记、书和进度都在这里，和程序装在哪无关。"
-
-  nsDialogs::Create 1018
-  Pop $MoqiDataPage
-  ${If} $MoqiDataPage == error
-    Abort
-  ${EndIf}
-
-  ${NSD_CreateRadioButton} 0 0 100% 12u "使用系统默认位置（推荐）"
-  Pop $MoqiDataDefaultRadio
-  ${NSD_OnClick} $MoqiDataDefaultRadio MoqiDataToggle
-
-  ${NSD_CreateLabel} 12u 14u 88% 12u "$APPDATA\${APP_NAME_EN}\data"
-  Pop $0
-
-  ${NSD_CreateRadioButton} 0 30u 100% 12u "放到我自己选的位置"
-  Pop $MoqiDataCustomRadio
-  ${NSD_OnClick} $MoqiDataCustomRadio MoqiDataToggle
-
-  ${NSD_CreateDirRequest} 12u 46u 66% 13u ""
-  Pop $MoqiDataParent
-  ${NSD_OnChange} $MoqiDataParent MoqiDataRefresh
-
-  ${NSD_CreateBrowseButton} 79% 46u 21% 13u "浏览..."
-  Pop $0
-  ${NSD_OnClick} $0 MoqiDataBrowse
-
-  ${NSD_CreateLabel} 12u 64u 88% 30u ""
-  Pop $MoqiDataPreview
-
-  ${NSD_CreateLabel} 0 96u 100% 20u ""
-  Pop $MoqiDataWarn
-
-  ${NSD_Check} $MoqiDataDefaultRadio
-  Call MoqiDataToggle
-  nsDialogs::Show
-FunctionEnd
-
-Function MoqiDataToggle
-  ${NSD_GetState} $MoqiDataCustomRadio $0
-  ${If} $0 == 1
-    EnableWindow $MoqiDataParent 1
-  ${Else}
-    EnableWindow $MoqiDataParent 0
-  ${EndIf}
-  Call MoqiDataRefresh
-FunctionEnd
-
-Function MoqiDataRefresh
-  ${NSD_GetState} $MoqiDataCustomRadio $0
-  ${If} $0 != 1
-    ${NSD_SetText} $MoqiDataPreview "数据会放在：$APPDATA\${APP_NAME_EN}\data"
-    ${NSD_SetText} $MoqiDataWarn "系统默认位置不需要管理员权限，也不会被 Windows 虚拟化。"
-    Return
-  ${EndIf}
-
-  ${NSD_GetText} $MoqiDataParent $1
-  ${If} $1 == ""
-    ${NSD_SetText} $MoqiDataPreview "请选择上级目录。"
-    ${NSD_SetText} $MoqiDataWarn ""
-    Return
-  ${EndIf}
-
-  StrCpy $0 "$1"
-  StrCpy $1 "${DATA_DIR_NAME}"
-  Call MoqiJoinFixed
-  ${NSD_SetText} $MoqiDataPreview "将创建：$2$\r$\n数据目录：$2\data"
-  ${NSD_SetText} $MoqiDataWarn "这一层 ${DATA_DIR_NAME} 由 ${PRODUCT_NAME} 固定使用，不能改名；你只选它放在哪个上级目录。"
-FunctionEnd
-
-Function MoqiDataBrowse
-  ${NSD_GetText} $MoqiDataParent $0
-  nsDialogs::SelectFolderDialog "选择数据存放位置" "$0"
-  Pop $0
-  ${If} $0 != ""
-  ${AndIf} $0 != "error"
-    ${NSD_SetText} $MoqiDataParent "$0"
-    Call MoqiDataRefresh
-  ${EndIf}
-FunctionEnd
-
-Function MoqiDataPageLeave
-  ; 已有数据：汇总页，不改任何东西
-  ${If} $MoqiHasExisting == "1"
-    Return
-  ${EndIf}
-
-  ; 默认位置：不写指针
-  ${NSD_GetState} $MoqiDataCustomRadio $0
-  ${If} $0 != 1
-    Delete "$APPDATA\${APP_NAME_EN}\data-root.txt"
-    Return
-  ${EndIf}
-
-  ${NSD_GetText} $MoqiDataParent $1
-  ${If} $1 == ""
-    MessageBox MB_ICONEXCLAMATION|MB_OK "请选择数据存放的上级目录。"
-    Abort
-  ${EndIf}
-
-  StrCpy $0 "$1"
-  StrCpy $1 "${DATA_DIR_NAME}"
-  Call MoqiJoinFixed
-  StrCpy $3 "$2" ; $3 = 数据根
-
-  ; 受保护目录
-  StrCpy $R0 "$3"
-  Call MoqiProtectedCheck
-  ${If} $R1 == "1"
-    MessageBox MB_ICONSTOP|MB_OK "不要放在系统受保护目录：$\r$\n$3$\r$\n$\r$\n请换到用户目录或 D 盘。"
-    Abort
-  ${EndIf}
-
-  ; 已存在墨栖数据 → 复用；已存在别的东西 → 拒绝
-  IfFileExists "$3\data\.moqi-data" moqiDataReuse
-  IfFileExists "$3\data\library.json" moqiDataReuse
-  IfFileExists "$3\*.*" moqiDataBlocked
-
-  ClearErrors
-  CreateDirectory "$3\data"
-  IfErrors moqiDataCreateFailed
-  Goto moqiDataWrite
-
-moqiDataCreateFailed:
-  MessageBox MB_ICONSTOP|MB_OK "无法创建数据目录：$\r$\n$3\data$\r$\n$\r$\n请换一个位置，或检查权限。"
-  Abort
-
-moqiDataReuse:
-  MessageBox MB_YESNO|MB_ICONQUESTION "这个位置已经有 ${PRODUCT_NAME} 的数据：$\r$\n$3$\r$\n$\r$\n直接使用这份数据吗？" IDYES moqiDataWrite
-  Abort
-
-moqiDataBlocked:
-  MessageBox MB_ICONSTOP|MB_OK "这个文件夹里已经有别的内容：$\r$\n$3$\r$\n$\r$\n为避免误覆盖，请换一个上级目录。"
-  Abort
-
-moqiDataWrite:
-  CreateDirectory "$APPDATA\${APP_NAME_EN}"
-  ClearErrors
-  FileOpen $0 "$APPDATA\${APP_NAME_EN}\data-root.txt" w
-  IfErrors moqiRememberFailed
-  FileWrite $0 "$3"
-  FileClose $0
-  Return
-
-moqiRememberFailed:
-  MessageBox MB_ICONEXCLAMATION|MB_OK "数据文件夹已经建好，但没能记住位置。$\r$\n${PRODUCT_NAME} 第一次启动会使用系统默认位置，你可以在设置里再改一次。"
 FunctionEnd
 
 !endif ; BUILD_UNINSTALLER
 
-; ═════════════════════ 卸载：数据删除选项 ═════════════════════
+; ═════════════════════ 卸载：默认保留 Data ═════════════════════
 
 !ifdef BUILD_UNINSTALLER
 
 Var UnDataPage
 Var UnDataCheck
 Var UnDataRoot
-Var UnDataPath
 
 !macro customUnWelcomePage
   UninstPage custom un.MoqiUnDataPageCreate un.MoqiUnDataPageLeave
 !macroend
 
 Function un.MoqiUnDataPageCreate
-  !insertmacro MUI_HEADER_TEXT "卸载选项" "程序会被删除，用户数据默认保留。"
+  !insertmacro MUI_HEADER_TEXT "卸载选项" "程序会被删除，Data 默认保留。"
 
   nsDialogs::Create 1018
   Pop $UnDataPage
@@ -398,24 +332,17 @@ Function un.MoqiUnDataPageCreate
     Abort
   ${EndIf}
 
-  StrCpy $UnDataRoot ""
-  IfFileExists "$APPDATA\${APP_NAME_EN}\data-root.txt" 0 moqiUnNoPointer
-    FileOpen $0 "$APPDATA\${APP_NAME_EN}\data-root.txt" r
-    FileRead $0 $UnDataRoot
-    FileClose $0
-moqiUnNoPointer:
-  ${If} $UnDataRoot == ""
-    StrCpy $UnDataRoot "$APPDATA\${APP_NAME_EN}"
-  ${EndIf}
-  StrCpy $UnDataPath "$UnDataRoot\data"
+  ; $INSTDIR 是 ...\MoQiReader\Program；Data 在它旁边
+  ${GetParent} "$INSTDIR" $0
+  StrCpy $UnDataRoot "$0\${DATA_DIR_NAME}"
 
-  ${NSD_CreateLabel} 0 0 100% 34u "你的书、笔记、阅读进度都在：$\r$\n$UnDataPath"
+  ${NSD_CreateLabel} 0 0 100% 34u "你的书、笔记、阅读进度都在：$\r$\n$UnDataRoot"
   Pop $0
 
-  ${NSD_CreateCheckbox} 0 42u 100% 12u "同时删除这些用户数据（不可恢复）"
+  ${NSD_CreateCheckbox} 0 42u 100% 12u "同时删除 Data 文件夹（不可恢复）"
   Pop $UnDataCheck
 
-  ${NSD_CreateLabel} 0 60u 100% 30u "不勾选就只删程序；下次安装还能接着用。"
+  ${NSD_CreateLabel} 0 60u 100% 30u "不勾选就只删 Program；下次安装还能接着用。"
   Pop $0
 
   nsDialogs::Show
@@ -424,32 +351,30 @@ FunctionEnd
 Function un.MoqiUnDataPageLeave
   ${NSD_GetState} $UnDataCheck $0
   ${If} $0 == 1
-    MessageBox MB_YESNO|MB_ICONEXCLAMATION "确定删除所有书、笔记和阅读进度吗？$\r$\n$UnDataPath$\r$\n$\r$\n这个操作不可恢复。" IDYES +2
+    MessageBox MB_YESNO|MB_ICONEXCLAMATION "确定删除所有书、笔记和阅读进度吗？$\r$\n$UnDataRoot$\r$\n$\r$\n这个操作不可恢复。" IDYES +2
     Abort
   ${EndIf}
 FunctionEnd
 
 !macro customUnInstall
   ${If} $UnDataCheck == 1
-    ; 只删带墨栖标记、且不是盘符根 / 用户主目录 / 程序目录的路径
     StrLen $0 "$UnDataRoot"
     ${If} $0 > 4
       StrLen $0 "$INSTDIR"
       StrCpy $1 "$UnDataRoot" $0
       ${If} $1 != "$INSTDIR"
-        IfFileExists "$UnDataRoot\data\.moqi-data" 0 moqiUnLegacy
-          RMDir /r "$UnDataPath"
-          RMDir "$UnDataRoot"
+        IfFileExists "$UnDataRoot\.moqi-data" 0 moqiUnTryLibrary
+          RMDir /r "$UnDataRoot"
           Goto moqiUnDone
-moqiUnLegacy:
-        IfFileExists "$UnDataRoot\data\library.json" 0 moqiUnDone
-          RMDir /r "$UnDataPath"
-          RMDir "$UnDataRoot"
+  moqiUnTryLibrary:
+        IfFileExists "$UnDataRoot\library.json" 0 moqiUnDone
+          RMDir /r "$UnDataRoot"
       ${EndIf}
     ${EndIf}
-moqiUnDone:
-    ; 只有删除数据时才清指针；保留数据时留着，重装还能找回原位置
-    Delete "$APPDATA\${APP_NAME_EN}\data-root.txt"
+  moqiUnDone:
+    ; 容器如果空了也一起收掉
+    ${GetParent} "$INSTDIR" $0
+    RMDir "$0"
   ${EndIf}
 !macroend
 

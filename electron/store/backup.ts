@@ -340,7 +340,7 @@ function guideText(manifest: BackupManifest, skipped: string[]): string {
     '· 导入是「只补不覆盖」：这台电脑上已有的书和笔记不会被删掉，重复导入也不会产生重复。',
     '· 书文件会被复制进墨栖自己的数据目录，原文件不受影响。',
     '· 恢复后第一次打开某本书会重新排版（几秒钟），之后照常秒开。',
-    '· 导入前会自动把当前数据备份到数据目录的 _backups 文件夹。',
+    '· 导入前会自动把当前数据备份到数据目录的 backups 文件夹。',
     '',
   ];
   if (!manifest.includeBooks) {
@@ -689,7 +689,7 @@ function sanitizeSettings(value: unknown): Partial<Settings> {
 // ───────────────────────────── 安全备份 ─────────────────────────────
 
 function createSafetyBackup(): string {
-  const root = path.join(paths.data(), '_backups');
+  const root = paths.backups();
   let dir = path.join(root, minuteStamp());
   let n = 2;
   while (fs.existsSync(dir)) dir = path.join(root, `${minuteStamp()}-${n++}`);

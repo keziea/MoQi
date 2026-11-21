@@ -19,6 +19,9 @@ interface Props {
   onOpenNote: (note: WorkspaceNote) => void;
   onSection: (section: 'library' | 'notes' | 'analysis' | 'history') => void;
   onImport: () => void;
+  dataDir: string;
+  onOpenData: () => void;
+  onOpenDataDir: () => void;
 }
 
 function greeting(): string {
@@ -66,6 +69,9 @@ export function WorkspaceOverview({
   onOpenNote,
   onSection,
   onImport,
+  dataDir,
+  onOpenData,
+  onOpenDataDir,
 }: Props) {
   const [goalOpen, setGoalOpen] = useState(false);
   const [goalDraft, setGoalDraft] = useState(goalMinutes);
@@ -407,6 +413,44 @@ export function WorkspaceOverview({
           <p className="ws-note-foot">在阅读页选中文字，或点顶部「写笔记」，笔记会留在这里。</p>
         </section>
       </div>
+
+      <section className="ws-panel mt-6" aria-label="我的数据">
+        <div className="ws-panel-head">
+          <div>
+            <span className="ws-panel-kicker">数据文件</span>
+            <h2>我的数据</h2>
+          </div>
+          <button className="ws-btn ws-btn-small" type="button" onClick={onOpenData}>
+            <Icon name="import" size={14} />
+            备份 / 恢复
+          </button>
+        </div>
+        <p className="ws-week-caption">
+          书架、笔记、阅读记录和书文件都在这里；整个 MoQiReader 文件夹搬走即可。
+        </p>
+        <div
+          className="mt-3 flex items-center gap-2 rounded-[10px] border border-line px-3 py-2"
+          style={{ background: 'var(--surface-sunken)' }}
+        >
+          <Icon name="folder" size={15} />
+          <code className="min-w-0 flex-1 truncate text-[11.5px] text-ink-2" title={dataDir}>
+            {dataDir || '正在读取…'}
+          </code>
+          <button className="ws-text-btn shrink-0" type="button" onClick={onOpenDataDir}>
+            打开文件夹
+          </button>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button className="ws-btn ws-btn-small" type="button" onClick={onOpenData}>
+            <Icon name="import" size={14} />
+            导入 / 导出数据
+          </button>
+          <button className="ws-btn ws-btn-quiet ws-btn-small" type="button" onClick={onImport}>
+            <Icon name="plus" size={14} />
+            导入书籍
+          </button>
+        </div>
+      </section>
 
       <section className="ws-shelf-strip" aria-label="书架一角">
         <div className="ws-panel-head">

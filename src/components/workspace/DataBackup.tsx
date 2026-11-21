@@ -10,9 +10,7 @@ import {
   type BackupRestoreResult,
   type BackupStats,
   type DataLocationInfo,
-  type RelocateProgress,
 } from '@/lib/ipc';
-import { DATA_DIR_NAME } from '@shared/names.generated';
 
 type Status =
   | { kind: 'idle' }
@@ -78,10 +76,6 @@ export function DataBackup({ open, onClose, onImported }: Props) {
   const [busy, setBusy] = useState<'export' | 'zip' | 'folder' | null>(null);
   const [progress, setProgress] = useState<BackupProgress | null>(null);
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
-  const [moving, setMoving] = useState<'pick' | 'copy' | null>(null);
-  const [moveProgress, setMoveProgress] = useState<RelocateProgress | null>(null);
-  const [moveError, setMoveError] = useState<string | null>(null);
-  const [restarting, setRestarting] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
 
   const refreshInfo = async () => {
@@ -104,10 +98,6 @@ export function DataBackup({ open, onClose, onImported }: Props) {
     if (!open) return;
     setStatus({ kind: 'idle' });
     setProgress(null);
-    setMoving(null);
-    setMoveProgress(null);
-    setMoveError(null);
-    setRestarting(false);
     void refreshInfo();
     void refreshLocation();
   }, [open]);
@@ -115,14 +105,6 @@ export function DataBackup({ open, onClose, onImported }: Props) {
   useEffect(() => {
     if (!open) return;
     return ipc.on.backupProgress((p) => setProgress(p));
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    return ipc.on.locationProgress((p) => {
-      setMoveProgress(p);
-      setMoving('copy');
-    });
   }, [open]);
 
   // 结果可能在面板下方，出来的时候带用户看一眼，别让人以为没反应
@@ -175,49 +157,7 @@ export function DataBackup({ open, onClose, onImported }: Props) {
     }
   }
 
-  async function handleChangeLocation() {
-    if (moving || busy) return;
-    setMoving('pick');
-    setMoveError(null);
-    setMoveProgress(null);
-    try {
-      const r = await ipc.location.change();
-      if (r.ok) {
-        setRestarting(true);
-        void refreshLocation();
-      } else if (!r.canceled && r.reason === 'io') {
-        setMoveError(r.detail ?? '迁移失败，原数据没有动。');
-      }
-    } catch (err) {
-      setMoveError(String(err));
-    } finally {
-      setMoving(null);
-      setMoveProgress(null);
-    }
-  }
-
-  async function handleResetLocation() {
-    if (moving || busy) return;
-    setMoving('pick');
-    setMoveError(null);
-    setMoveProgress(null);
-    try {
-      const r = await ipc.location.reset();
-      if (r.ok) {
-        setRestarting(true);
-        void refreshLocation();
-      } else if (!r.canceled && r.reason === 'io') {
-        setMoveError(r.detail ?? '迁移失败，原数据没有动。');
-      }
-    } catch (err) {
-      setMoveError(String(err));
-    } finally {
-      setMoving(null);
-      setMoveProgress(null);
-    }
-  }
-
-  const disabled = busy !== null || moving !== null;
+  const disabled = busy !== null;
   const percent =
     progress && progress.total > 0
       ? Math.max(3, Math.min(100, Math.round((progress.done / progress.total) * 100)))
@@ -228,10 +168,21 @@ export function DataBackup({ open, onClose, onImported }: Props) {
       open={open}
       onClose={onClose}
       width={430}
-      title="备份与恢复"
-      subtitle="书架、笔记、进度、书文件，都收进一个压缩包"
+      title="我的数据"
+      subtitle="数据位置、备份与恢复"
     >
       <div className="space-y-6">
+        <div
+          className="rounded-[12px] border border-line px-3.5 py-3 text-[11.5px] leading-relaxed text-ink-2"
+          style={{ background: 'var(--surface-sunken)' }}
+        >
+          <strong className="font-medium text-ink">这里可以做什么</strong>
+          <p className="mt-1 text-ink-3">
+            把书架、笔记、进度和书文件导出成一个压缩包；也可以从压缩包或文件夹恢复。
+            所有内容只在这台电脑上。
+          </p>
+        </div>
+
         {/* 这台电脑上有什么 */}
         <section>
           <div className="mb-2 flex items-baseline justify-between">
@@ -262,7 +213,7 @@ export function DataBackup({ open, onClose, onImported }: Props) {
         {/* 导出 */}
         <section className="space-y-2.5">
           <div className="flex items-baseline justify-between">
-            <h3 className="text-[12.5px] font-medium text-ink">导出备份</h3>
+            <h3 className="text-[12.5px] font-medium text-ink">导出数据</h3>
             <span className="text-[11px] text-ink-3">ZIP 压缩包</span>
           </div>
 
@@ -318,7 +269,7 @@ export function DataBackup({ open, onClose, onImported }: Props) {
         {/* 恢复 */}
         <section className="space-y-2.5 border-t border-line pt-5">
           <div className="flex items-baseline justify-between">
-            <h3 className="text-[12.5px] font-medium text-ink">恢复数据</h3>
+            <h3 className="text-[12.5px] font-medium text-ink">导入数据</h3>
             <span className="text-[11px] text-ink-3">只补不覆盖</span>
           </div>
 
@@ -444,139 +395,57 @@ export function DataBackup({ open, onClose, onImported }: Props) {
           )}
         </div>
 
-        {/* 数据位置 */}
+        {/* 数据位置（v0.8 固定） */}
         <section className="space-y-2.5 border-t border-line pt-5">
           <div className="flex items-baseline justify-between">
             <h3 className="text-[12.5px] font-medium text-ink">数据位置</h3>
-            <span className="text-[11px] text-ink-3">
-              {location?.isCustom ? '自定义' : '默认'}
-            </span>
+            <span className="text-[11px] text-ink-3">固定</span>
           </div>
 
           <div
             className="rounded-[12px] border border-line px-3.5 py-3"
             style={{ background: 'var(--surface-sunken)' }}
           >
-            <div className="break-all text-[11.5px] leading-relaxed text-ink-2">
-              {location?.dataDir ?? '正在读取…'}
-            </div>
+            <input
+              readOnly
+              value={location?.dataDir ?? ''}
+              placeholder="正在读取…"
+              aria-label="当前数据目录"
+              title={location?.dataDir ?? ''}
+              onFocus={(e) => e.currentTarget.select()}
+              className="w-full rounded-[7px] border border-line px-2 py-1.5 text-[11.5px] leading-relaxed text-ink-2 outline-none"
+              style={{ background: 'var(--surface)' }}
+            />
             <div className="mt-1 text-[11px] leading-relaxed text-ink-3">
-              {location?.isCustom
-                ? `数据放在你选的 ${location.folderName} 文件夹里`
-                : location?.portable
-                  ? `便携版默认位置：程序旁边的 ${location.folderName} 文件夹`
-                  : `默认位置。更改时选一个目录，墨栖会在里面新建 ${location?.folderName ?? DATA_DIR_NAME} 文件夹`}
+              数据固定在软件目录的 Data 文件夹里，和程序一起移动。设置里不能单独改；
+              整个 MoQiReader 文件夹搬到哪，Data 就跟到哪。
             </div>
           </div>
-
-          {location?.legacyPortable && (
-            <div
-              className="rounded-[10px] px-3 py-2 text-[11px] leading-relaxed"
-              style={{ background: 'var(--warning-soft, #f7f1e3)', color: 'var(--ink-2)' }}
-            >
-              检测到旧数据还在系统目录。点「更改位置」可以把数据搬到程序旁边，整个文件夹就能一起拷走。
-            </div>
-          )}
-
-          {location?.portableReadonly && (
-            <div
-              className="rounded-[10px] px-3 py-2 text-[11px] leading-relaxed"
-              style={{ background: 'var(--warning-soft, #f7f1e3)', color: 'var(--ink-2)' }}
-            >
-              程序目录不可写（可能是只读 U 盘），已临时使用系统数据目录。
-            </div>
-          )}
 
           {location?.unavailable && (
             <div
               className="rounded-[10px] px-3 py-2 text-[11px] leading-relaxed"
               style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}
             >
-              之前设置的位置打不开（磁盘没插上或文件夹被移走）：
+              数据目录现在打不开：
               <span className="break-all"> {location.unavailable}</span>
               <br />
-              已临时使用默认位置。插回磁盘后重启墨栖就会回去。
+              请把整个 MoQiReader 文件夹放到可写位置后重启。
             </div>
           )}
 
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={handleChangeLocation}
-              disabled={disabled}
-              className="flex-1 rounded-[12px] border px-3 py-2.5 text-[12.5px] font-medium text-ink transition hover:bg-sunken disabled:opacity-45"
-              style={{ borderColor: 'var(--line-strong)' }}
-            >
-              {moving === 'pick' ? '请选择位置…' : moving === 'copy' ? '正在迁移…' : '更改位置'}
-            </button>
-            {location?.isCustom && (
-              <button
-                type="button"
-                onClick={handleResetLocation}
-                disabled={disabled}
-                className="rounded-[12px] border px-3 py-2.5 text-[12.5px] text-ink-2 transition hover:bg-sunken disabled:opacity-45"
-                style={{ borderColor: 'var(--line)' }}
-              >
-                改回默认
-              </button>
-            )}
-          </div>
-
-          {moving === 'copy' && moveProgress && (
-            <div
-              className="rounded-[12px] border border-line px-4 py-3"
-              style={{ background: 'var(--surface-sunken)' }}
-            >
-              <div className="flex items-baseline justify-between text-[12px] text-ink-2">
-                <span>正在搬运数据…</span>
-                <span className="text-[11px] tabular-nums text-ink-3">
-                  {moveProgress.total > 0
-                    ? `${num(moveProgress.done)} / ${num(moveProgress.total)} 个文件`
-                    : '准备中'}
-                </span>
-              </div>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full" style={{ background: 'var(--line)' }}>
-                <div
-                  className="h-full rounded-full transition-all duration-200"
-                  style={{
-                    width: `${
-                      moveProgress.total > 0
-                        ? Math.max(3, Math.round((moveProgress.done / moveProgress.total) * 100))
-                        : 4
-                    }%`,
-                    background: 'var(--accent)',
-                  }}
-                />
-              </div>
-              <div className="mt-1.5 text-[11px] text-ink-3">
-                已搬运 {formatBytes(moveProgress.bytes)}
-              </div>
-            </div>
-          )}
-
-          {moveError && (
-            <div
-              className="rounded-[10px] px-3 py-2 text-[11.5px] leading-relaxed"
-              style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}
-            >
-              换位置失败：{moveError}
-            </div>
-          )}
-
-          {restarting && (
-            <div
-              className="rounded-[10px] px-3 py-2 text-[11.5px] leading-relaxed"
-              style={{
-                background: 'color-mix(in srgb, var(--success) 8%, transparent)',
-                color: 'var(--success)',
-              }}
-            >
-              数据已经搬好，墨栖正在重启…
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={() => ipc.app.openDataDir()}
+            className="flex w-full items-center justify-between rounded-[12px] border border-line px-3 py-2.5 text-[12px] text-ink-2 transition hover:bg-surface"
+          >
+            <span>打开数据文件夹</span>
+            <Icon name="folder" size={15} />
+          </button>
 
           <p className="text-[11px] leading-relaxed text-ink-3">
-            换位置是先复制、核对文件数量，再切换；旧位置的数据会在下次启动时清理。移动硬盘没插时，会自动退回默认位置。
+            书、笔记、进度、备份都在 Data 里；换电脑时把整个 MoQiReader 文件夹拷走即可。
+            要单独备份，仍建议用上面的「导出为压缩包」放到 U 盘或网盘。
           </p>
         </section>
 

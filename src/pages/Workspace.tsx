@@ -58,6 +58,7 @@ export function Workspace({ section, onSection, onOpen }: Props) {
   const [notes, setNotes] = useState<WorkspaceNote[]>([]);
   const [notesLoading, setNotesLoading] = useState(true);
   const [stats, setStats] = useState<DailyStat[]>([]);
+  const [dataDir, setDataDir] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const books = useLibrary((s) => s.books);
@@ -75,6 +76,13 @@ export function Workspace({ section, onSection, onOpen }: Props) {
   useEffect(() => {
     ipc.stats.books().then(setBookStats).catch(() => {});
   }, [books.length, detailId]);
+
+  useEffect(() => {
+    ipc.location
+      .info()
+      .then((info) => setDataDir(info.dataDir))
+      .catch(() => setDataDir(''));
+  }, []);
 
   const detailMeta = useMemo(
     () => (detailId ? books.find((b) => b.id === detailId) ?? null : null),
@@ -287,16 +295,13 @@ export function Workspace({ section, onSection, onOpen }: Props) {
               <i /> 本地 · 不联网
             </span>
             <button
-              className="ws-icon-btn"
+              className="ws-btn ws-btn-small"
               type="button"
               onClick={() => setDataOpen(true)}
-              aria-label="数据备份与恢复"
-              title="数据备份与恢复"
+              aria-label="我的数据：备份与恢复"
             >
-              <Icon name="import" size={17} />
-            </button>
-            <button className="ws-icon-btn" type="button" onClick={() => ipc.app.openDataDir()} aria-label="打开数据文件夹">
-              <Icon name="folder" size={17} />
+              <Icon name="import" size={15} />
+              我的数据
             </button>
           </div>
         </header>
@@ -346,6 +351,9 @@ export function Workspace({ section, onSection, onOpen }: Props) {
                   onOpenNote={openNote}
                   onSection={onSection}
                   onImport={() => useImportDialog.getState().openDialog()}
+                  dataDir={dataDir}
+                  onOpenData={() => setDataOpen(true)}
+                  onOpenDataDir={() => ipc.app.openDataDir()}
                 />
               )}
               {section === 'library' && (
@@ -402,6 +410,10 @@ export function Workspace({ section, onSection, onOpen }: Props) {
         onClose={() => setSettingsOpen(false)}
         settings={settings}
         update={update}
+        onOpenData={() => {
+          setSettingsOpen(false);
+          setDataOpen(true);
+        }}
       />
 
       <DataBackup

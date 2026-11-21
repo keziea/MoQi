@@ -22,9 +22,17 @@ const VERSION4 = `${VERSION}.0`;
 // 这台机器上 Electron 从「中文目录」或「本项目目录」内启动会直接退出（exit=3）。
 // 早期版本默认输出到工作区顶层的 Moqi/，既污染目录、又容易和旧版混淆（已废弃）。
 // 现在默认放到用户目录下的 Moqi-portable，可用环境变量 MOQI_PACK_DIR 覆盖。
-const FINAL_DIR = process.env.MOQI_PACK_DIR
+// v0.8：输出结构是 <PACK_ROOT>\MoQiReader\{Program,Data}，压缩包根目录就是 MoQiReader。
+const pkg = require(path.join(ROOT, 'package.json'));
+const PACK_ROOT = process.env.MOQI_PACK_DIR
   ? path.resolve(process.env.MOQI_PACK_DIR)
   : path.join(os.homedir(), 'Moqi-portable');
+const CONTAINER = pkg.moqi?.containerDir || 'MoQiReader';
+const PROGRAM_SUBDIR = pkg.moqi?.programDir || 'Program';
+const DATA_SUBDIR = pkg.moqi?.dataDir || 'Data';
+const FINAL_DIR = path.join(PACK_ROOT, CONTAINER);
+const FINAL_PROGRAM = path.join(FINAL_DIR, PROGRAM_SUBDIR);
+const FINAL_DATA = path.join(FINAL_DIR, DATA_SUBDIR);
 
 function log(msg) {
   process.stdout.write(`  ${msg}\n`);
@@ -120,20 +128,42 @@ function safeRemove(target) {
       }
     }
   };
-  copyTree(src, FINAL_DIR);
-  log(`已实体化 ${fileCount} 个文件`);
+  copyTree(src, FINAL_PROGRAM);
+  log(`已实体化 ${fileCount} 个文件到 Program`);
 
-  // 便携模式标记：应用靠它把默认数据目录放到程序旁边的 <dataDir>
+  // 便携模式标记：只用于“这是绿色版”的提示；数据路径由 exe 位置推导，不靠它。
   fs.writeFileSync(
-    path.join(FINAL_DIR, 'portable.flag'),
+    path.join(FINAL_PROGRAM, 'portable.flag'),
     JSON.stringify(
-      { app: require(path.join(ROOT, 'package.json')).moqi?.appNameEn || 'moqi-reader', version: VERSION, mode: 'portable' },
+      { app: pkg.moqi?.appNameEn || 'moqi-reader', version: VERSION, mode: 'portable' },
       null,
       2
     ),
     'utf8'
   );
-  log('已写入 portable.flag');
+  log('已写入 Program\\portable.flag');
+
+  // Data 空骨架：压缩包自带 Data 文件夹，但绝不带开发机的真实数据
+  for (const dir of ['books', 'user', 'backups', 'exports', 'logs']) {
+    fs.mkdirSync(path.join(FINAL_DATA, dir), { recursive: true });
+  }
+  fs.writeFileSync(
+    path.join(FINAL_DATA, '.moqi-data'),
+    JSON.stringify(
+      { app: pkg.moqi?.appNameEn || 'moqi-reader', kind: 'data-dir', layout: 'flat', version: 3 },
+      null,
+      2
+    ),
+    'utf8'
+  );
+
+  // 容器根放一个启动器，省得用户进 Program 里找 exe
+  fs.writeFileSync(
+    path.join(FINAL_DIR, '启动墨栖.cmd'),
+    '@echo off\r\nfor %%f in ("%~dp0' + PROGRAM_SUBDIR + '\\*.exe") do start "" "%%~f"\r\n',
+    'utf8'
+  );
+  log('已创建 Data 空骨架与启动器');
 
   console.log('▸ 5/5 清理临时目录');
   safeRemove(BUILD_DIR);
@@ -156,5 +186,6 @@ function safeRemove(target) {
   })();
 
   console.log(`\n✓ 完成：${FINAL_DIR}（${size} MB）`);
-  console.log(`  双击 ${path.join(FINAL_DIR, `${APP_NAME}.exe`)} 即可运行\n`);
+  console.log(`  双击 ${path.join(FINAL_PROGRAM, `${APP_NAME}.exe`)} 即可运行`);
+  console.log(`  或双击 ${path.join(FINAL_DIR, '启动墨栖.cmd')}\n`);
 })();

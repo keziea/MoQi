@@ -12,7 +12,17 @@ import type {
   ReadingSession,
   Settings,
 } from '../../shared/models';
-import { paths, ensureDirs, logError, DATA_DIR_NAME, defaultDataDir, getDataRootInfo } from '../store/paths';
+import {
+  paths,
+  ensureDirs,
+  logError,
+  DATA_DIR_NAME,
+  configDir,
+  effectiveDefaultDataDir,
+  getDataRootInfo,
+  getPreviousDataDir,
+  programDir,
+} from '../store/paths';
 import {
   makeBookId,
   pickBest,
@@ -48,7 +58,20 @@ import {
   saveSettings,
 } from '../store/userdata';
 import { defaultBackupName, exportBackup, getBackupStats, restoreBackup } from '../store/backup';
-import { planDataLocation, relocateData } from '../store/location';
+import { adoptExternalBooks } from '../store/migrate';
+import {
+  cancelPendingCleanup,
+  cleanupNow,
+  getPendingCleanup,
+  planDataLocation,
+  relocateData,
+} from '../store/location';
+import type {
+  ExistingAction,
+  LocationPlan,
+  RelocateMode,
+  RelocateResult,
+} from '../store/location';
 
 let mainWindow: BrowserWindow | null = null;
 let scanning = false;
@@ -88,7 +111,193 @@ function scheduleRelaunch(): void {
   }, 1400);
 }
 
+function stamp(d = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(
+    d.getMinutes()
+  )}${pad(d.getSeconds())}`;
+}
+
+function formatBytes(bytes: number): string {
+  if (!bytes || bytes < 0) return '0 B';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+}
+
+async function showMessage(
+  options: Electron.MessageBoxOptions
+): Promise<Electron.MessageBoxReturnValue> {
+  if (mainWindow && !mainWindow.isDestroyed()) return dialog.showMessageBox(mainWindow, options);
+  return dialog.showMessageBox(options);
+}
+
+async function showOpenDialog(
+  options: Electron.OpenDialogOptions
+): Promise<Electron.OpenDialogReturnValue> {
+  if (mainWindow && !mainWindow.isDestroyed()) return dialog.showOpenDialog(mainWindow, options);
+  return dialog.showOpenDialog(options);
+}
+
+async function showSaveDialog(
+  options: Electron.SaveDialogOptions
+): Promise<Electron.SaveDialogReturnValue> {
+  if (mainWindow && !mainWindow.isDestroyed()) return dialog.showSaveDialog(mainWindow, options);
+  return dialog.showSaveDialog(options);
+}
+
+function renameTargetName(name: string): string | null {
+  const base = path
+    .basename(name)
+    .replace(/[\\/:*?"<>|]/g, '_')
+    .replace(/^\.+/, '')
+    .trim();
+  if (!base) return null;
+  if (base.toLowerCase() === DATA_DIR_NAME.toLowerCase()) return null;
+  if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i.test(base)) return null;
+  return base;
+}
+
+/** 给「重命名」选项一个同层的名字输入框（保存对话框只用来取名，不写文件） */
+async function askRename(
+  plan: LocationPlan
+): Promise<{ action: 'rename'; renameTo: string } | null> {
+  const parent = path.dirname(plan.root);
+  const suggested = path.join(parent, `${DATA_DIR_NAME}-old-${stamp()}`);
+  const picked = await showSaveDialog({
+    title: '给已有数据起个新名字',
+    buttonLabel: '用这个名字',
+    defaultPath: suggested,
+    properties: ['showOverwriteConfirmation', 'createDirectory'],
+  });
+  if (picked.canceled || !picked.filePath) return null;
+
+  const resolved = path.resolve(picked.filePath);
+  if (path.dirname(resolved).toLowerCase() !== parent.toLowerCase()) {
+    await showMessage({
+      type: 'warning',
+      title: '只能在同一层改名',
+      message: '旧数据必须留在原来的文件夹里，只能改它自己的名字。',
+      detail: `请选择 ${parent} 这一层里的名字。`,
+      buttons: ['知道了'],
+    });
+    return null;
+  }
+
+  const name = renameTargetName(path.basename(resolved));
+  if (!name) {
+    await showMessage({
+      type: 'warning',
+      title: '这个名字不能用',
+      message: '名字不能为空，不能叫 MoQiData，也不能用 Windows 保留名或非法字符。',
+      buttons: ['知道了'],
+    });
+    return null;
+  }
+
+  if (fs.existsSync(path.join(parent, name))) {
+    await showMessage({
+      type: 'warning',
+      title: '这个名字已经被占用了',
+      message: `${path.join(parent, name)} 已经存在。`,
+      detail: '请换一个名字，或者先处理掉那个文件夹。',
+      buttons: ['知道了'],
+    });
+    return null;
+  }
+
+  return { action: 'rename', renameTo: name };
+}
+
+async function askExistingAction(
+  plan: LocationPlan
+): Promise<{ action: ExistingAction; renameTo?: string } | null> {
+  const isMoqi = plan.existing === 'moqi';
+  const buttons = isMoqi
+    ? ['复用这份数据', '覆盖（先备份）', '重命名旧数据', '取消']
+    : ['重命名旧数据', '取消'];
+  const cancelId = buttons.length - 1;
+
+  const result = await showMessage({
+    type: 'warning',
+    title: '目标位置已有内容',
+    message: `${plan.root} 已经存在`,
+    detail: isMoqi
+      ? [
+          '复用：直接使用这份数据，不复制、不合并。当前数据会留在原处。',
+          '覆盖：先把旧目录改名备份，再把当前数据迁进去。',
+          '重命名：给旧目录起个新名字保留下来，再把当前数据迁进去。',
+          '',
+          '三个选项都不会直接删除你的文件。',
+        ].join('\n')
+      : [
+          '这个文件夹不是墨栖的数据。',
+          '为避免误覆盖，只能给它改名保留，或者取消。',
+        ].join('\n'),
+    buttons,
+    defaultId: 0,
+    cancelId,
+    noLink: true,
+  });
+
+  if (result.response < 0 || result.response === cancelId) return null;
+  if (isMoqi && result.response === 0) return { action: 'reuse' };
+  if (isMoqi && result.response === 1) return { action: 'replace' };
+  return askRename(plan);
+}
+
+async function askRelocateMode(
+  plan: LocationPlan,
+  existingNote?: string,
+  title = '更改数据位置'
+): Promise<RelocateMode | null> {
+  const stats = getBackupStats();
+  const free =
+    plan.freeBytes !== undefined ? `目标磁盘剩余：${formatBytes(plan.freeBytes)}` : '';
+  const result = await showMessage({
+    type: 'question',
+    title,
+    message: `将在所选位置使用 ${DATA_DIR_NAME} 文件夹`,
+    detail: [
+      `当前：${getDataRootInfo().dataDir}`,
+      `目标：${plan.dataDir}`,
+      `数据量：${stats.shelf} 本书 · ${stats.notes} 条笔记 · ${formatBytes(stats.bookBytes)}`,
+      free,
+      existingNote ?? '',
+      '',
+      '复制：旧位置永久保留，确认没问题后你可以自己删。',
+      '移动：复制并核对成功后，旧目录保留 7 天；设置页可以立即清理或保留。',
+      '完成后墨栖会自动重启。',
+    ]
+      .filter((line) => line !== '')
+      .join('\n'),
+    buttons: ['复制过去（推荐，保留旧数据）', '移动过去（7 天后清理旧目录）', '取消'],
+    defaultId: 0,
+    cancelId: 2,
+    noLink: true,
+  });
+  if (result.response < 0 || result.response === 2) return null;
+  return result.response === 1 ? 'move' : 'copy';
+}
+
+/** 打开「选择数据上级目录」对话框；pick / change 共用，避免两套默认路径 */
+async function pickDataParent(): Promise<{ canceled: boolean; parent?: string }> {
+  const current = getDataRootInfo();
+  const picked = await showOpenDialog({
+    title: '选择数据存放的上级目录',
+    buttonLabel: '选这里',
+    defaultPath: path.dirname(current.root),
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  const parent = picked.filePaths[0];
+  if (picked.canceled || !parent) return { canceled: true };
+  return { canceled: false, parent };
+}
+
 function defaultLibraryDirs(): string[] {
+  // v0.8 单根布局：书都已经在 Data 里，不再默认扫文档/项目目录，避免重复收书
+  if (getDataRootInfo().mode === 'single-root') return [];
   const dirs: string[] = [];
   try {
     dirs.push(path.join(app.getPath('documents'), '墨栖书库'));
@@ -149,15 +358,16 @@ export function registerIpc(): void {
     const titles = [...new Set(scanned.map((f) => titleFromFileName(f)))];
 
     const settings = getSettings();
+    const singleRoot = getDataRootInfo().mode === 'single-root';
     const dirs = [...(settings.libraryDirs ?? [])];
     const files: string[] = [];
 
     for (const p of input) {
       try {
         const st = fs.statSync(p);
-        // 目录纳入长期扫描；单个文件只参与这一次导入，
-        // 以前把文件路径也塞进 libraryDirs，导致扫描时 readdirSync 直接失败、书永远进不来。
-        if (st.isDirectory()) dirs.push(path.normalize(p));
+        // 旧布局：目录纳入长期扫描；单个文件只参与这一次导入。
+        // v0.8：目录也不长期记住，扫完就把书复制进 Data，避免下次从外部路径再收一遍。
+        if (st.isDirectory() && !singleRoot) dirs.push(path.normalize(p));
         else if (st.isFile()) files.push(path.normalize(p));
       } catch {
         /* 失效路径忽略 */
@@ -165,10 +375,15 @@ export function registerIpc(): void {
     }
 
     const before = new Set(readLibrary().map((b) => b.id));
-    saveSettings({ libraryDirs: [...new Set(dirs)] });
-    const books = await runScan(false, files);
-    const added = books.filter((b) => !before.has(b.id)).length;
-    return { ok: true, added, scanned: scanned.length, titles, books };
+    saveSettings({
+      libraryDirs: singleRoot ? [] : [...new Set(dirs)],
+    });
+    // v0.8 要把选中的目录本身作为这次扫描的 extraPaths，因为它不再存进 libraryDirs
+    const books = await runScan(false, singleRoot ? input : files);
+    if (singleRoot) await adoptExternalBooks();
+    const finalBooks = singleRoot ? readLibrary() : books;
+    const added = finalBooks.filter((b) => !before.has(b.id)).length;
+    return { ok: true, added, scanned: scanned.length, titles, books: finalBooks };
   });
 
   ipcMain.handle('library:pickFolder', async () => {
@@ -362,9 +577,15 @@ export function registerIpc(): void {
     };
 
     if (mode === 'single') {
-      const r = await dialog.showSaveDialog(mainWindow!, {
+      const exportDir = paths.exports();
+      try {
+        fs.mkdirSync(exportDir, { recursive: true });
+      } catch {
+        /* 建不了就让对话框自己回退到系统默认目录 */
+      }
+      const r = await showSaveDialog({
         title: '导出全部笔记',
-        defaultPath: path.join(app.getPath('documents'), `墨栖笔记-${stamp}.md`),
+        defaultPath: path.join(exportDir, `墨栖笔记-${stamp}.md`),
         filters: [{ name: 'Markdown 文件', extensions: ['md'] }],
       });
       if (r.canceled || !r.filePath) return { ok: false, canceled: true };
@@ -395,8 +616,9 @@ export function registerIpc(): void {
       return { ok: true, count: notes.length, path: r.filePath };
     }
 
-    const r = await dialog.showOpenDialog(mainWindow!, {
+    const r = await showOpenDialog({
       title: '选择笔记导出的文件夹',
+      defaultPath: paths.exports(),
       properties: ['openDirectory', 'createDirectory'],
     });
     if (r.canceled || !r.filePaths[0]) return { ok: false, canceled: true };
@@ -453,10 +675,14 @@ export function registerIpc(): void {
       dataRoot: root.root,
       isCustomDataRoot: root.isCustom,
       unavailableDataRoot: root.unavailable ?? '',
-      defaultDataDir: defaultDataDir(),
+      defaultDataDir: effectiveDefaultDataDir(),
       dataFolderName: DATA_DIR_NAME,
       portable: root.portable,
       legacyPortable: !!root.legacyPortable,
+      layout: root.layout,
+      mode: root.mode,
+      containerDir: root.containerDir ?? '',
+      pendingCleanup: getPendingCleanup(),
       libraryDir: resolveDirs(getSettings())[0] ?? '',
       documents: (() => {
         try {
@@ -478,35 +704,80 @@ export function registerIpc(): void {
       isCustom: root.isCustom,
       unavailable: root.unavailable ?? '',
       folderName: DATA_DIR_NAME,
-      defaultDataDir: defaultDataDir(),
+      defaultDataDir: effectiveDefaultDataDir(),
       portable: root.portable,
       legacyPortable: !!root.legacyPortable,
       portableReadonly: !!root.portableReadonly,
+      layout: root.layout,
+      mode: root.mode,
+      containerDir: root.containerDir ?? '',
+      pendingCleanup: getPendingCleanup(),
+      previous: getPreviousDataDir() ?? '',
+      programDir: programDir(),
+      configDir: configDir(),
+      rolledBackFrom: root.rolledBackFrom ?? '',
     };
   });
 
-  ipcMain.handle('location:change', async () => {
-    const picked = await dialog.showOpenDialog(mainWindow!, {
-      title: '选择数据存放位置',
-      buttonLabel: '选这里',
-      properties: ['openDirectory', 'createDirectory'],
-    });
-    const parent = picked.filePaths[0];
-    if (picked.canceled || !parent) return { ok: false, canceled: true };
+  ipcMain.handle('location:pick', async () => {
+    if (getDataRootInfo().mode === 'single-root') return { canceled: true };
+    const picked = await pickDataParent();
+    if (picked.canceled || !picked.parent) return { canceled: true };
+
+    const plan = planDataLocation(picked.parent);
+    return {
+      canceled: false,
+      parent: picked.parent,
+      plan: {
+        root: plan.root,
+        dataDir: plan.dataDir,
+        existing: plan.existing,
+        same: plan.same,
+        inside: plan.inside,
+        empty: plan.empty,
+        invalid: plan.invalid,
+        detail: plan.detail,
+      },
+    };
+  });
+
+  ipcMain.handle('location:change', async (_e, opts?: { parent?: string }) => {
+    const current = getDataRootInfo();
+    if (current.mode === 'single-root') {
+      return {
+        ok: false,
+        reason: 'invalid',
+        detail: 'v0.8 的数据固定在软件目录的 Data 文件夹里，不能单独改；要搬就搬整个 MoQiReader 文件夹。',
+        root: current.dataDir,
+        dataDir: current.dataDir,
+      };
+    }
+    let parent = opts?.parent;
+    if (!parent) {
+      const picked = await pickDataParent();
+      if (picked.canceled || !picked.parent) return { ok: false, canceled: true };
+      parent = picked.parent;
+    }
 
     const plan = planDataLocation(parent);
-    if (plan.inside) {
-      await dialog.showMessageBox(mainWindow!, {
+    if (plan.invalid) {
+      await showMessage({
         type: 'warning',
-        title: '这个位置不行',
-        message: '不能把数据放进当前的数据目录里',
-        detail: '请选择上一层，或者换一个磁盘。',
+        title: '这个位置不能用',
+        message: plan.detail ?? '请换一个文件夹。',
+        detail: plan.root ? `目标：${plan.root}` : undefined,
         buttons: ['知道了'],
       });
-      return { ok: false, reason: 'inside', detail: '不能放进当前数据目录' };
+      return {
+        ok: false,
+        reason: 'invalid',
+        detail: plan.detail,
+        root: plan.root,
+        dataDir: plan.dataDir,
+      };
     }
     if (plan.same) {
-      await dialog.showMessageBox(mainWindow!, {
+      await showMessage({
         type: 'info',
         title: '数据已经在这里',
         message: `数据现在就存放在：\n${plan.dataDir}`,
@@ -514,71 +785,184 @@ export function registerIpc(): void {
       });
       return { ok: false, reason: 'same', root: plan.root, dataDir: plan.dataDir };
     }
-    if (plan.conflict) {
-      await dialog.showMessageBox(mainWindow!, {
+    if (plan.inside) {
+      await showMessage({
         type: 'warning',
-        title: '这里有数据了',
-        message: `${plan.root} 里已经有一份墨栖的数据`,
-        detail: '为了不覆盖，请换一个位置。',
+        title: '这个位置不行',
+        message: '不能把数据放进当前的数据目录里',
+        detail: '请选择上一层，或者换一个磁盘。',
         buttons: ['知道了'],
       });
-      return { ok: false, reason: 'conflict', detail: '目标位置已有数据', root: plan.root };
+      return {
+        ok: false,
+        reason: 'inside',
+        detail: '不能放进当前数据目录',
+        root: plan.root,
+        dataDir: plan.dataDir,
+      };
     }
 
-    const stats = getBackupStats();
-    const confirm = await dialog.showMessageBox(mainWindow!, {
-      type: 'question',
-      buttons: ['复制过去（保留旧数据）', '移动过去（删除旧目录）', '取消'],
-      defaultId: 0,
-      cancelId: 2,
-      title: '更改数据位置',
-      message: `会在所选位置创建 ${DATA_DIR_NAME} 文件夹`,
-      detail: [
-        `数据目录：`,
-        plan.dataDir,
-        '',
-        `当前的 ${stats.shelf} 本书、${stats.notes} 条笔记、${stats.days} 天阅读记录会一起搬过去。`,
-        '',
-        '复制：旧位置原样保留，确认没问题后你可以自己删。',
-        '移动：复制并核对成功后，旧目录会在下次启动时自动删除。',
-        '',
-        '完成后墨栖会自动重启。',
-      ].join('\n'),
-    });
-    if (confirm.response === 2 || confirm.response < 0) return { ok: false, canceled: true };
+    let existingAction: ExistingAction | undefined;
+    let renameTo: string | undefined;
 
-    const mode = confirm.response === 1 ? 'move' : 'copy';
-    const result = await relocateData({ kind: 'custom', parent }, mode, sendLocationProgress);
+    if (plan.existing !== 'none') {
+      const choice = await askExistingAction(plan);
+      if (!choice) return { ok: false, canceled: true, reason: 'canceled' };
+      existingAction = choice.action;
+      renameTo = choice.renameTo;
+
+      if (existingAction === 'reuse') {
+        const confirm = await showMessage({
+          type: 'question',
+          title: '复用这份数据',
+          message: `以后就使用：\n${plan.dataDir}`,
+          detail: [
+            '不会复制，也不会合并。',
+            '当前数据仍然留在原处，只是墨栖以后读这里。',
+            '如果反悔，可以在设置里再改回来。',
+          ].join('\n'),
+          buttons: ['就用这里', '取消'],
+          defaultId: 0,
+          cancelId: 1,
+        });
+        if (confirm.response !== 0) return { ok: false, canceled: true, reason: 'canceled' };
+
+        const result = await relocateData(
+          { kind: 'custom', parent },
+          'copy',
+          { existingAction: 'reuse' }
+        );
+        if (result.ok) scheduleRelaunch();
+        return result;
+      }
+    }
+
+    const mode = await askRelocateMode(
+      plan,
+      existingAction === 'replace' || existingAction === 'rename'
+        ? '旧目标会先改名保留，不会删除。'
+        : undefined
+    );
+    if (!mode) return { ok: false, canceled: true, reason: 'canceled' };
+
+    const result = await relocateData(
+      { kind: 'custom', parent },
+      mode,
+      { existingAction, renameTo, onProgress: sendLocationProgress }
+    );
     if (result.ok) scheduleRelaunch();
     return result;
   });
 
   ipcMain.handle('location:reset', async () => {
-    const confirm = await dialog.showMessageBox(mainWindow!, {
-      type: 'question',
-      buttons: ['搬回默认位置', '取消'],
-      defaultId: 0,
-      cancelId: 1,
-      title: '恢复默认位置',
-      message: '要把数据搬回默认位置吗？',
-      detail: `默认位置：\n${defaultDataDir()}\n\n搬完墨栖会自动重启，旧位置的数据会在下次启动时清理。`,
-    });
-    if (confirm.response !== 0) return { ok: false, canceled: true };
+    const current = getDataRootInfo();
+    if (current.mode === 'single-root') {
+      return {
+        ok: false,
+        reason: 'invalid',
+        detail: 'v0.8 的数据位置固定，不需要也不能改回默认。',
+        root: current.dataDir,
+        dataDir: current.dataDir,
+      };
+    }
+    const targetRoot = effectiveDefaultDataDir();
+    const plan = planDataLocation(path.dirname(targetRoot));
 
-    const result = await relocateData({ kind: 'default' }, 'move', sendLocationProgress);
-    if (result.ok) {
-      scheduleRelaunch();
-    } else if (result.reason === 'conflict') {
-      await dialog.showMessageBox(mainWindow!, {
+    if (plan.invalid) {
+      await showMessage({
         type: 'warning',
-        title: '默认位置还有一份数据',
-        message: `默认位置里已经有一份墨栖的数据：\n${defaultDataDir()}`,
-        detail: '为了不覆盖，这次没有搬。你可以先备份，再手动处理那个文件夹。',
+        title: '默认位置不可用',
+        message: plan.detail ?? '默认位置现在不能用。',
+        detail: `目标：${plan.root}`,
         buttons: ['知道了'],
       });
+      return {
+        ok: false,
+        reason: 'invalid',
+        detail: plan.detail,
+        root: plan.root,
+        dataDir: plan.dataDir,
+      };
     }
+    if (plan.same) {
+      await showMessage({
+        type: 'info',
+        title: '已经在这里',
+        message: `数据已经在默认位置：\n${plan.dataDir}`,
+        buttons: ['知道了'],
+      });
+      return { ok: false, reason: 'same', root: plan.root, dataDir: plan.dataDir };
+    }
+
+    let existingAction: ExistingAction | undefined;
+    let renameTo: string | undefined;
+
+    if (plan.existing !== 'none') {
+      const choice = await askExistingAction(plan);
+      if (!choice) return { ok: false, canceled: true, reason: 'canceled' };
+      existingAction = choice.action;
+      renameTo = choice.renameTo;
+
+      if (existingAction === 'reuse') {
+        const confirm = await showMessage({
+          type: 'question',
+          title: '复用默认位置的数据',
+          message: `以后就使用：\n${plan.dataDir}`,
+          detail: '不会复制，也不会合并。当前自定义位置的数据仍然留在原处。',
+          buttons: ['就用这里', '取消'],
+          defaultId: 0,
+          cancelId: 1,
+        });
+        if (confirm.response !== 0) return { ok: false, canceled: true, reason: 'canceled' };
+
+        const result = await relocateData({ kind: 'default' }, 'copy', {
+          existingAction: 'reuse',
+        });
+        if (result.ok) scheduleRelaunch();
+        return result;
+      }
+    }
+
+    const mode = await askRelocateMode(
+      plan,
+      [
+        existingAction === 'replace' || existingAction === 'rename'
+          ? '旧目标会先改名保留，不会删除。'
+          : '',
+        `当前：${current.dataDir}`,
+      ]
+        .filter(Boolean)
+        .join('\n'),
+      '恢复默认位置'
+    );
+    if (!mode) return { ok: false, canceled: true, reason: 'canceled' };
+
+    const result = await relocateData({ kind: 'default' }, mode, {
+      existingAction,
+      renameTo,
+      onProgress: sendLocationProgress,
+    });
+    if (result.ok) scheduleRelaunch();
     return result;
   });
+
+  ipcMain.handle('location:cleanupNow', async () => {
+    const pending = getPendingCleanup();
+    if (!pending) return { cleaned: false, reason: 'none' };
+    const confirm = await showMessage({
+      type: 'warning',
+      title: '清理旧数据',
+      message: `确定删除旧位置吗？\n${pending.old}`,
+      detail:
+        '删掉后不能恢复。新位置的数据已经逐文件核对过，不受影响。\n如果还想留一份，选「取消」，稍后手动处理。',
+      buttons: ['确认清理', '取消'],
+      defaultId: 1,
+      cancelId: 1,
+    });
+    if (confirm.response !== 0) return { cleaned: false, reason: 'canceled' };
+    return cleanupNow();
+  });
+  ipcMain.handle('location:cancelCleanup', () => cancelPendingCleanup());
 
   ipcMain.handle('app:openDataDir', async () => {
     await shell.openPath(paths.data());

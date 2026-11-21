@@ -27,6 +27,8 @@ const ASSETS = [
 ];
 
 function token() {
+  // 无 git 的环境（本机打包/上传）直接给 token；有 git 时仍可走凭据管理器
+  if (process.env.GITHUB_TOKEN?.trim()) return process.env.GITHUB_TOKEN.trim();
   const out = execFileSync('git', ['credential', 'fill'], {
     input: 'protocol=https\nhost=github.com\n\n',
     encoding: 'utf8',

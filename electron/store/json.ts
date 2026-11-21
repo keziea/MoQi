@@ -16,11 +16,14 @@ export function writeJsonAtomic(file: string, data: unknown): void {
   fs.writeFileSync(tmp, body, 'utf8');
 
   try {
-    if (fs.existsSync(file)) {
-      fs.copyFileSync(file, bak);
-      fs.unlinkSync(file);
+    if (fs.existsSync(file)) fs.copyFileSync(file, bak);
+    try {
+      // Windows 的 rename 通常可以直接覆盖；不行再退回「先删后改名」。
+      fs.renameSync(tmp, file);
+    } catch {
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+      fs.renameSync(tmp, file);
     }
-    fs.renameSync(tmp, file);
   } catch (err) {
     // 回滚
     try {
@@ -53,8 +56,12 @@ export function writeTextAtomic(file: string, text: string): void {
   const tmp = `${file}.tmp`;
   fs.writeFileSync(tmp, text, 'utf8');
   try {
-    if (fs.existsSync(file)) fs.unlinkSync(file);
-    fs.renameSync(tmp, file);
+    try {
+      fs.renameSync(tmp, file);
+    } catch {
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+      fs.renameSync(tmp, file);
+    }
   } catch (err) {
     if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
     throw err;

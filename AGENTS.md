@@ -2,7 +2,7 @@
 
 > **任何人（包括 AI）接手本项目，只读这一个文件，就应当知道：这是什么、该读哪些文档、什么不能动、改了什么会牵连什么。**
 >
-> 最后更新：2026-11-21 · 版本 v0.5.1
+> 最后更新：2026-11-21 · 版本 v0.8.0
 
 ---
 
@@ -17,15 +17,16 @@
 
 | 项 | 值 |
 |---|---|
-| 项目根目录 | `E:/vibecoding/Read Application/` |
+| 项目根目录 | `E:/VibeCoding/MoQi-main/MoQi-main/` |
 | 应用名 | 墨栖（Moqi） |
 | 运行平台 | Windows 10 / 11（x64） |
 | 技术栈 | Electron 33 + Vite 6 + React 18 + TypeScript 5 + Tailwind 3 + zustand 5 + framer-motion |
 | 开发运行 | `npm run dev` |
 | 生产构建 | `npm run build` |
-| 打 Windows 安装包 | `npm run dist` → 输出到 `release/` |
-| 书库根目录 | 用户数据目录下的 `墨栖书库`，同时会自动纳管本项目根目录内的书籍文件夹 |
-| 用户数据存放 | `%APPDATA%/moqi-reader/data/`（纯 JSON，不联网、不上传） |
+| 打 Windows 安装包 | `npm run dist` → 输出到 `out-app/`；发布前把 Setup 与 portable.7z 复制到 `release/` |
+| 安装位置 | 只选一个上级目录，自动创建 `<上级>/MoQiReader/`，里面固定 `Program` + `Data` |
+| 程序目录 | `<安装位置>/MoQiReader/Program/`（exe、resources、locales） |
+| 用户数据 | `<安装位置>/MoQiReader/Data/`（library.json / books / user / backups / exports / logs / runtime）；不写 `%APPDATA%` 业务数据 |
 
 ---
 
@@ -110,14 +111,14 @@ AGENTS.md（本文件 · 宪法）
 
 1. **`blockId` 生成规则**（`chapterId + "#" + blockIndex`）：一旦改变，用户所有笔记与阅读标记全部失效。
 2. **`Book` 模型的字段语义**：可以加字段（可选），不能改字段含义或删除字段。
-3. **数据目录结构**：`data/books/{bookId}/book.json` + `data/user/`。改动必须带迁移。
+3. **数据目录结构**：v0.8 单根 —— `MoQiReader/Program` + `MoQiReader/Data`，`Data` 里直接放 `library.json` / `books/{bookId}` / `user` / `backups` / `exports` / `logs`。数据位置由 exe 位置推导，不再有 `data-root.txt` 指针；旧的 v0.7 布局（`%APPDATA%/MoQiData`、指针）由首次启动迁移兼容；改动必须带迁移。
 
 ---
 
 ## 5. 目录结构速查
 
 ```
-E:/vibecoding/Read Application/
+E:/VibeCoding/MoQi-main/MoQi-main/
 ├── AGENTS.md                  ← 本文件（宪法）
 ├── README.md                  ← 给用户看的简短说明
 ├── docs/                      ← 全部设计文档
@@ -159,8 +160,8 @@ E:/vibecoding/Read Application/
 | 计时与数据面板 | ✅ 完成 · 实时 mm:ss、今天/这本书今天、暂停/重置、今日小结、四类统计模板、按书明细、7 天图、累计 |
 | 设置与主题（4 套） | ✅ 完成（含翻页方式、顶栏自动淡出） |
 | 备份与恢复 | ✅ 完成 · 完整 ZIP（书架/笔记/进度/书文件）；压缩包与文件夹两种导入；导入前自动留底 |
-| 数据位置 | ✅ 完成 · 安装器可选；应用内可改；MoQiReader\data；迁移带校验、旧位置下次启动清理、盘丢失自动回退 |
-| 打包发布 | ✅ 绿色版 `墨栖阅读器-分页版` 已更新并实测；`npm run dist` 安装包待执行 |
+| 数据位置 | ✅ 完成 · v0.8 单根布局：只选一个安装位置，自动建 `MoQiReader\Program` + `MoQiReader\Data`；数据由 exe 相对推导，不写指针/AppData；旧 v0.7 数据首次启动自动迁移；书库外部书收进 `Data\books`；移动整个容器后路径自愈；设置页只读、不可改 |
+| 打包发布 | ✅ v0.8.0 安装包与绿色版已构建（绿色版根目录 `MoQiReader`，内含 `Program` + 空 `Data`）；NSIS 编译通过；绿色版启动冒烟通过；`test:data` 117 + `test:single-root` 29 + `test:installer` 14 + 打包版 UI 回归 1 全过 |
 
 **已验证的关键指标（2026-11-08）**
 
@@ -195,12 +196,12 @@ E:/vibecoding/Read Application/
 
 ## 8. 本地工作区约定（2026-11-10 整理）
 
-**唯一工作文件夹：`E:/vibecoding/Read Application/`。** 改代码、看文档、打包、上传，全部只在这里进行；工作区顶层不再放第二份源码或成品。
+**唯一工作文件夹：`E:/VibeCoding/MoQi-main/MoQi-main/`。** 改代码、看文档、打包、上传，全部只在这里进行；工作区顶层不再放第二份源码或成品。
 
 | 位置 | 作用 | 是否进 Git |
 |---|---|---|
 | `src/` `electron/` `shared/` `docs/` `scripts/` `build/` | 真正的源码与文档 | 是 |
-| `release/` | 对外发布的 v0.3.0 安装版与 7z 解压版，GitHub / Gitee 发行版附件都从这里取 | 是 |
+| `release/` | 对外发布的安装版与 7z 解压版（当前 v0.8.0），GitHub / Gitee 发行版附件都从这里取 | 是 |
 | `_待删除/` | 清理缓冲区。删除一律**先移进来观察**，确认几天没问题再清空 | 否（`_待删除/` 已忽略） |
 | `out-*/` `dist/` `dist-electron/` | 构建中间产物，可随时用 `npm run build` / `npm run dist` 重新生成 | 否 |
 | `node_modules/` `.git/` | 依赖与全部版本历史，**不得删除** | 否 / 是 |

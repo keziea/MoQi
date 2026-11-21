@@ -44,12 +44,41 @@ export interface DataLocationInfo {
   legacyPortable: boolean;
   /** 便携目录只读，已退回系统目录 */
   portableReadonly: boolean;
+  /** flat = v0.6/v0.8 新结构；nested = v0.5.x「容器 + data」旧结构 */
+  layout: 'flat' | 'nested';
+  /** single-root = v0.8 固定 <容器>\Data；legacy = v0.7 及以前 */
+  mode?: 'single-root' | 'legacy';
+  /** v0.8 容器目录 */
+  containerDir?: string;
+  /** 移动模式留下的旧位置清理计划 */
+  pendingCleanup: { old: string; at: number; deleteAfter: number } | null;
+  /** 上一次的数据位置（迁移前记录，用于回滚提示） */
+  previous: string;
+  programDir: string;
+  configDir: string;
+  /** 指针失效后自动回退的来源 */
+  rolledBackFrom: string;
 }
 
 export interface RelocateProgress {
   done: number;
   total: number;
   bytes: number;
+}
+
+export interface LocationPickResult {
+  canceled?: boolean;
+  parent?: string;
+  plan?: {
+    root: string;
+    dataDir: string;
+    existing: 'none' | 'moqi' | 'other';
+    same: boolean;
+    inside: boolean;
+    empty: boolean;
+    invalid?: string;
+    detail?: string;
+  };
 }
 
 export type RelocateResult =
@@ -63,13 +92,21 @@ export type RelocateResult =
       adopted: number;
       /** 复制失败的外部书 */
       missing: string[];
-      /** copy = 旧数据保留；move = 下次启动删旧目录 */
+      /** copy = 旧数据保留；move = 保留 7 天后清理 */
       mode: 'copy' | 'move';
+      /** 复用了目标已有数据，没有复制 */
+      reused?: boolean;
+      /** 迁移前关键 JSON 快照目录 */
+      backupDir?: string;
+      /** 被改名保留下来的旧目标目录 */
+      asideDir?: string;
+      /** 移动模式下旧位置的计划清理时间 */
+      deleteAfter?: number;
     }
   | {
       ok: false;
       canceled?: boolean;
-      reason?: 'inside' | 'same' | 'conflict' | 'io';
+      reason?: 'inside' | 'same' | 'conflict' | 'io' | 'invalid' | 'space' | 'canceled';
       detail?: string;
       root?: string;
       dataDir?: string;
@@ -207,8 +244,11 @@ export interface MoqiApi {
   };
   location: {
     info(): Promise<DataLocationInfo>;
-    change(): Promise<RelocateResult>;
+    pick(): Promise<LocationPickResult>;
+    change(opts?: { parent?: string }): Promise<RelocateResult>;
     reset(): Promise<RelocateResult>;
+    cleanupNow(): Promise<{ cleaned: boolean; reason?: string }>;
+    cancelCleanup(): Promise<boolean>;
   };
   app: {
     info(): Promise<AppInfoLite>;
