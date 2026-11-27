@@ -2224,49 +2224,514 @@
   background: var(--accent-hover);
 }
 
-/* ── 段落三选一菜单 ─────────────────────────────────────── */
-.para-menu {
+/* ── 段落操作坞：固定页边，上下不动 ─────────────────────── */
+.para-dock {
   position: fixed;
-  z-index: 75;
+  z-index: 76;
   display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 5px 6px;
-  border-radius: 999px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1px;
+  padding: 6px;
   border: 1px solid var(--line);
+  border-radius: 16px;
   background: var(--surface);
   box-shadow: var(--shadow-md);
   will-change: transform, opacity;
 }
 
-.para-menu button {
-  display: inline-flex;
-  flex: 1;
+.para-dock-head {
+  display: flex;
+  height: 22px;
   align-items: center;
   justify-content: center;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-tertiary);
+  user-select: none;
+}
+
+.para-dock-head[data-on] {
+  color: var(--accent);
+}
+
+.para-dock-btn {
+  display: flex;
+  height: 50px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background-color 130ms var(--ease-out), color 130ms var(--ease-out);
+}
+
+.para-dock-btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.para-dock-btn[data-active] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.para-dock-sep {
+  height: 1px;
+  margin: 3px 7px;
+  background: var(--line);
+}
+
+.para-dock-close {
+  display: flex;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--text-tertiary);
+  transition: background-color 130ms var(--ease-out), color 130ms var(--ease-out);
+}
+
+.para-dock-close:hover {
+  background: var(--surface-sunken);
+  color: var(--text);
+}
+
+.para-dock[data-layout="dock"] {
+  flex-direction: row;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 999px;
+}
+
+.para-dock[data-layout="dock"] .para-dock-head,
+.para-dock[data-layout="dock"] .para-dock-sep {
+  display: none;
+}
+
+.para-dock[data-layout="dock"] .para-dock-btn {
+  width: 92px;
+  height: 38px;
+  flex-direction: row;
   gap: 5px;
-  height: 32px;
-  padding: 0 10px;
   border-radius: 999px;
   font-size: 12px;
+}
+
+.para-dock[data-layout="dock"] .para-dock-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+}
+
+/* 段落被操作坞选中 / 进入查字态：只改底色，不动排版 */
+.blk-focus {
+  background: var(--accent-tint);
+  border-radius: 5px;
+}
+
+.blk-lens {
+  background: var(--accent-soft);
+  border-radius: 5px;
+  cursor: help;
+}
+
+/* ── 字词卡 ─────────────────────────────────────────────── */
+.dict-card {
+  position: fixed;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  will-change: transform, opacity;
+}
+
+.dict-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px 14px 8px 16px;
+}
+
+.dict-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.dict-term-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.dict-term {
+  font-family: var(--font-serif);
+  font-size: 34px;
+  line-height: 1.04;
+  color: var(--text);
+}
+
+.dict-term[data-kind="word"] {
+  font-size: 24px;
+  letter-spacing: 0.02em;
+}
+
+.dict-badge {
+  padding: 2px 6px;
+  border: 1px solid var(--accent-line);
+  border-radius: 999px;
+  font-size: 9.5px;
+  line-height: 1.4;
+  color: var(--accent);
+}
+
+.dict-reading {
+  margin-top: 4px;
+  font-size: 13.5px;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+}
+
+.dict-icon-btn {
+  display: flex;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--text-tertiary);
+  transition: background-color 130ms var(--ease-out), color 130ms var(--ease-out);
+}
+
+.dict-icon-btn:hover {
+  background: var(--surface-sunken);
+  color: var(--text);
+}
+
+.dict-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 16px 14px;
+  overscroll-behavior: contain;
+}
+
+.dict-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 2px 0 10px;
+}
+
+.dict-meta span {
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: var(--surface-sunken);
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+}
+
+.dict-label {
+  display: block;
+  margin: 10px 0 6px;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--text-tertiary);
+}
+
+.dict-senses ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: sense;
+}
+
+.dict-senses li {
+  position: relative;
+  margin-bottom: 5px;
+  padding-left: 20px;
+  font-size: 12.8px;
+  line-height: 1.78;
+  color: var(--text);
+}
+
+.dict-senses li::before {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  content: counter(sense);
+  counter-increment: sense;
+  font-family: var(--font-sans);
+  font-size: 9px;
+  line-height: 14px;
+  text-align: center;
+}
+
+.dict-words {
+  margin-top: 4px;
+}
+
+.dict-word-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.dict-word-chips button {
+  padding: 4px 9px;
+  border-radius: 7px;
+  background: var(--surface-sunken);
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: background-color 130ms var(--ease-out), color 130ms var(--ease-out);
+}
+
+.dict-word-chips button:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.dict-breakdown {
+  margin-bottom: 2px;
+}
+
+.dict-chars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dict-chars button {
+  display: flex;
+  min-width: 44px;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 5px 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  transition: border-color 130ms var(--ease-out), background-color 130ms var(--ease-out);
+}
+
+.dict-chars button:hover {
+  border-color: var(--accent-line);
+  background: var(--accent-tint);
+}
+
+.dict-chars b {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.dict-chars i {
+  font-style: normal;
+  font-size: 9.5px;
+  color: var(--accent);
+}
+
+.dict-foot {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 7px 10px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.dict-action {
+  display: inline-flex;
+  height: 30px;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 11px;
   color: var(--text-secondary);
   white-space: nowrap;
   transition: background-color 130ms var(--ease-out), color 130ms var(--ease-out);
 }
 
-.para-menu button:hover {
+.dict-action:hover {
   background: var(--accent-soft);
   color: var(--accent);
 }
 
-.para-menu button[data-active] {
+.dict-action[data-on] {
   color: var(--accent);
 }
 
-.para-menu-sep {
-  width: 1px;
-  height: 16px;
-  background: var(--line);
+.dict-action:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.dict-action--right {
+  margin-left: auto;
+}
+
+.dict-foot--quiet {
+  justify-content: center;
+  border-top: 1px solid var(--line);
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.dict-empty {
+  padding: 8px 0;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--text-tertiary);
+}
+
+.dict-skeleton span {
+  display: block;
+  height: 10px;
+  margin-bottom: 9px;
+  border-radius: 6px;
+  background: var(--surface-sunken);
+  animation: dictPulse 1.1s ease-in-out infinite alternate;
+}
+
+.dict-skeleton span:nth-child(2) {
+  width: 88%;
+}
+
+.dict-skeleton span:nth-child(3) {
+  width: 64%;
+}
+
+@keyframes dictPulse {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dict-error {
+  padding: 10px 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-tertiary);
+}
+
+.dict-error button {
+  margin-top: 8px;
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.dict-error button:hover {
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+
+.vocab-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vocab-list li {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid var(--line);
+}
+
+.vocab-list li:last-child {
+  border-bottom: none;
+}
+
+.vocab-item {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  grid-template-columns: 38px 62px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 9px 0;
+  text-align: left;
+}
+
+.vocab-item:hover .vocab-term {
+  color: var(--accent);
+}
+
+.vocab-term {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  color: var(--text);
+  transition: color 130ms var(--ease-out);
+}
+
+.vocab-reading {
+  overflow: hidden;
+  font-size: 10.5px;
+  color: var(--accent);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vocab-brief {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vocab-del {
+  display: flex;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: var(--text-tertiary);
+}
+
+.vocab-del:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.dict-ring {
+  position: fixed;
+  z-index: 77;
+  border: 1.5px solid var(--accent);
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: 0 0 0 3px var(--accent-tint);
+  pointer-events: none;
+}
+
+/* 查字态：段落本身给一点可点的暗示，但不改字号/行距 */
+.blk-lens::selection,
+.blk-lens *::selection {
+  background: var(--accent-line);
 }
 
 /* ── 选句浮层 ───────────────────────────────────────────── */

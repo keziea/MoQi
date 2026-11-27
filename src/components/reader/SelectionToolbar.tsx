@@ -15,12 +15,13 @@ interface Props {
   onPick: (color: HighlightColor) => void;
   onComment: () => void;
   onCopy: () => void;
+  onLookup: () => void;
 }
 
-export function SelectionToolbar({ open, rect, onPick, onComment, onCopy }: Props) {
+export function SelectionToolbar({ open, rect, onPick, onComment, onCopy, onLookup }: Props) {
   if (!rect) return null;
 
-  const width = 268;
+  const width = 348;
   const centerX = rect.left + rect.width / 2;
   const left = Math.max(12, Math.min(window.innerWidth - width - 12, centerX - width / 2));
   const top = Math.max(12, rect.top - 48);
@@ -37,6 +38,17 @@ export function SelectionToolbar({ open, rect, onPick, onComment, onCopy }: Prop
           style={{ left, top, width, boxShadow: 'var(--shadow-md)' }}
           onMouseDown={(e) => e.preventDefault()}
         >
+          <button
+            className="flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-accent transition-colors hover:bg-[var(--accent-soft)]"
+            onClick={onLookup}
+            title="查这个词的读音和意思"
+          >
+            <Icon name="dictionary" size={13} />
+            查词
+          </button>
+
+          <div className="mx-1 h-4 w-[1px]" style={{ background: 'var(--line)' }} />
+
           {HL_COLORS.map((c) => (
             <button
               key={c.key}

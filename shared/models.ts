@@ -212,6 +212,15 @@ export type ThemeName = 'paper' | 'sepia' | 'green' | 'night';
 export type FontKind = 'serif' | 'sans' | 'kai';
 export type PageMode = 'scroll' | 'paged';
 
+/** 生字本条目：查过的字 / 词，用户主动收进来 */
+export interface VocabEntry {
+  term: string;
+  pinyin: string;
+  brief: string;
+  at: number;
+  kind: 'char' | 'word';
+}
+
 export interface Settings {
   theme: ThemeName;
   fontSize: number;
@@ -237,6 +246,8 @@ export interface Settings {
   lastBookId?: string;
   /** 上次导出备份的时间，用于在面板里提醒「多久没备份了」 */
   lastBackupAt?: number;
+  /** 生字本：只存字/词与摘要，随设置一起落盘、随备份一起走 */
+  vocab?: VocabEntry[];
   windowBounds?: { x: number; y: number; width: number; height: number };
   dataVersion: number;
 }
@@ -255,6 +266,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoHideBar: true,
   clickToMark: true,
   dailyGoalMinutes: 30,
+  vocab: [],
   libraryDirs: [],
   categories: [
     '文学', '历史', '哲学', '政治', '经济', '社科',

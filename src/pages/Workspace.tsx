@@ -84,6 +84,14 @@ export function Workspace({ section, onSection, onOpen }: Props) {
       .catch(() => setDataDir(''));
   }, []);
 
+  const [version, setVersion] = useState('');
+  useEffect(() => {
+    ipc.app
+      .info()
+      .then((info) => setVersion(info.version))
+      .catch(() => setVersion(''));
+  }, []);
+
   const detailMeta = useMemo(
     () => (detailId ? books.find((b) => b.id === detailId) ?? null : null),
     [detailId, books]
@@ -263,7 +271,7 @@ export function Workspace({ section, onSection, onOpen }: Props) {
             <Icon name="settings" size={17} />
             <span>设置</span>
           </button>
-          <span className="ws-version">v0.4</span>
+          <span className="ws-version">{version ? `v${version}` : ''}</span>
         </div>
       </aside>
 

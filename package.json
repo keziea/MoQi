@@ -1,6 +1,6 @@
 {
   "name": "moqi-reader",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "moqi": {
     "appNameEn": "moqi-reader",
     "containerDir": "MoQiReader",

@@ -10,6 +10,9 @@ interface Props {
   onBlockClick: (block: Block, chapter: Chapter, rect: DOMRect) => void;
   onNoteClick: (noteId: string) => void;
   onImageClick: (src: string) => void;
+  focusedBlockId?: string | null;
+  lensBlockId?: string | null;
+  onCharClick?: (block: Block, e: React.MouseEvent) => void;
   isLast: boolean;
   totalChars: number;
   /** 分页模式：图片必须立即加载，否则列高算不准 */
@@ -23,6 +26,9 @@ export const ChapterView = memo(function ChapterView({
   onBlockClick,
   onNoteClick,
   onImageClick,
+  focusedBlockId,
+  lensBlockId,
+  onCharClick,
   isLast,
   totalChars,
   paged = false,
@@ -50,6 +56,9 @@ export const ChapterView = memo(function ChapterView({
           block={b}
           marked={markedBlockId === b.id}
           ranges={rangesByBlock.get(b.id) ?? []}
+          focused={focusedBlockId === b.id}
+          lens={lensBlockId === b.id}
+          onCharClick={onCharClick}
           onClick={(block, rect) => onBlockClick(block, chapter, rect)}
           onNoteClick={onNoteClick}
           onImageClick={onImageClick}

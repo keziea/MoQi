@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { Block, Chapter, HighlightColor, Note, PageMode, TextRange } from '@shared/models';
+import type { Block, Chapter, HighlightColor, Note, PageMode, TextRange, VocabEntry } from '@shared/models';
 import { useReader } from '@/store/useReader';
 import { ipc } from '@/lib/ipc';
 import { splitSentences, type Sentence } from '@/lib/sentences';
@@ -23,8 +23,11 @@ import { NotesPanel } from '@/components/reader/NotesPanel';
 import { StatsPanel } from '@/components/reader/StatsPanel';
 import { SettingsPanel } from '@/components/reader/SettingsPanel';
 import { SearchPanel } from '@/components/reader/SearchPanel';
-import { ParaActionMenu } from '@/components/reader/ParaActionMenu';
+import { ParaDock } from '@/components/reader/ParaDock';
+import { DictCard, type DictAnchor } from '@/components/reader/DictCard';
 import { NoteScopeDialog } from '@/components/reader/NoteScopeDialog';
+import { briefOf, lookupChar, lookupWord, preloadDict, readingOf, type LookupResult } from '@/lib/dict';
+import { hitCharAt } from '@/lib/textHit';
 import { FinishedCelebration, type FinishedSummary } from '@/components/workspace/FinishedCelebration';
 import { NavRail } from '@/components/reader/NavRail';
 import { buildTocTree, findActiveToc, type TocNode } from '@/lib/toc';
@@ -79,6 +82,7 @@ export function Reader({ bookId, onBack, openTarget }: Props) {
   const restoredRef = useRef(false);
   const activeChapterRef = useRef<string | null>(null);
   const lastToolbarClose = useRef(0);
+  const lastPageRef = useRef(-1);
   const openTargetRef = useRef<string | null>(null);
 
   const [scrolled, setScrolled] = useState(false);
@@ -87,10 +91,26 @@ export function Reader({ bookId, onBack, openTarget }: Props) {
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
   const [selection, setSelection] = useState<PendingSelection | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
-  const [paraMenu, setParaMenu] = useState<{
-    block: Block;
-    chapter: Chapter;
-    rect: DOMRect;
+  const [dock, setDock] = useState<{ block: Block; chapter: Chapter } | null>(null);
+  const [lens, setLens] = useState<{ blockId: string; chapterTitle: string } | null>(null);
+  const [card, setCard] = useState<{
+    key: string;
+    kind: 'char' | 'word';
+    blockId: string;
+    chapterTitle: string;
+    anchor: DictAnchor;
+    charRect: DOMRect | null;
+  } | null>(null);
+  const [lookup, setLookup] = useState<LookupResult | null>(null);
+  const [dictLoading, setDictLoading] = useState(false);
+  const [dictError, setDictError] = useState<string | null>(null);
+  const lookupSeq = useRef(0);
+  const lastLookupRef = useRef<{
+    kind: 'char' | 'word';
+    key: string;
+    blockId: string;
+    chapterTitle: string;
+    charRect: DOMRect | null;
   } | null>(null);
   const [scope, setScope] = useState<{ block: Block; chapter: Chapter } | null>(null);
   const [finishHint, setFinishHint] = useState(false);
@@ -232,6 +252,13 @@ export function Reader({ bookId, onBack, openTarget }: Props) {
     setPageInfo((prev) =>
       prev.page === info.page && prev.total === info.total ? prev : { page: info.page, total: info.total }
     );
+    // 翻页 / 重排换页时，段落坞与字词卡都失效
+    if (info.page !== lastPageRef.current) {
+      lastPageRef.current = info.page;
+      setDock(null);
+      setLens(null);
+      setCard(null);
+    }
     if (!info.blockId) return;
     useReader.getState().patchProgress({
       chapterId: info.chapterId,
@@ -300,6 +327,9 @@ export function Reader({ bookId, onBack, openTarget }: Props) {
     });
     setPanel(null);
     setNavOpen(false);
+    setDock(null);
+    setLens(null);
+    setCard(null);
   }, [book]);
 
   const setPageMode = useCallback(
@@ -543,23 +573,213 @@ export function Reader({ bookId, onBack, openTarget }: Props) {
     [blockChars, totalChars]
   );
 
-  /** 点段落先问一句：标记 / 整段笔记 / 选一句 */
+  /** 关掉段落坞、查字态与字典卡 */
+  const closeDock = useCallback(() => {
+    setDock(null);
+    setLens(null);
+    setCard(null);
+    lookupSeq.current += 1;
+  }, []);
+
+  /** 打开字词卡：先定位到正文栏外侧，再异步取词条 */
+  const openLookup = useCallback(
+    async (
+      kind: 'char' | 'word',
+      key: string,
+      blockId: string,
+      charRect: DOMRect | null,
+      chapterTitle: string,
+      anchorOverride?: DictAnchor
+    ) => {
+      const el = document.getElementById(blockId);
+      if (!el) return;
+
+      const blockW = el.offsetWidth || el.getBoundingClientRect().width;
+      const clip = document.querySelector<HTMLElement>('.reader-page-clip');
+      let column = { left: el.getBoundingClientRect().left, right: el.getBoundingClientRect().right };
+      if (clip && blockW > 0) {
+        const cr = clip.getBoundingClientRect();
+        const left = cr.left + (cr.width - blockW) / 2;
+        column = { left, right: left + blockW };
+      }
+
+      const anchor =
+        anchorOverride ?? {
+          charTop: charRect?.top ?? el.getBoundingClientRect().top,
+          charX: charRect
+            ? charRect.left + charRect.width / 2
+            : column.left + (column.right - column.left) / 2,
+          column,
+        };
+
+      lastLookupRef.current = { kind, key, blockId, chapterTitle, charRect };
+      setCard({ key, kind, blockId, chapterTitle, anchor, charRect });
+      setDictError(null);
+      setLookup(null);
+      setDictLoading(true);
+
+      preloadDict();
+      const seq = ++lookupSeq.current;
+      try {
+        if (kind === 'char') {
+          const entry = await lookupChar(key);
+          if (seq !== lookupSeq.current) return;
+          if (entry) setLookup({ kind: 'char', char: entry });
+          else setDictError('这个字暂未收录。');
+        } else {
+          const entry = await lookupWord(key);
+          if (seq !== lookupSeq.current) return;
+          setLookup({ kind: 'word', word: entry });
+        }
+      } catch (err) {
+        if (seq !== lookupSeq.current) return;
+        setDictError(err instanceof Error ? err.message : '字词库读取失败');
+      } finally {
+        if (seq === lookupSeq.current) setDictLoading(false);
+      }
+    },
+    []
+  );
+
+  /** 点段落：只打开固定位置的操作坞，不再跟着点击点上下翻 */
   const onBlockClick = useCallback(
-    (block: Block, chapter: Chapter, rect: DOMRect) => {
+    (block: Block, chapter: Chapter, _rect: DOMRect) => {
       if (!settings.clickToMark) return;
       const sel = window.getSelection();
       if (sel && !sel.isCollapsed && sel.toString().trim()) return;
       if (Date.now() - lastToolbarClose.current < 300) return;
       setScope(null);
-      setParaMenu({ block, chapter, rect });
+      setLens(null);
+      setCard(null);
+      setDock({ block, chapter });
     },
     [settings.clickToMark]
   );
 
   /** 打开「记笔记」：先选范围（整段 / 某几句） */
   const openScope = useCallback((block: Block, chapter: Chapter) => {
-    setParaMenu(null);
+    setDock(null);
+    setLens(null);
+    setCard(null);
     setScope({ block, chapter });
+  }, []);
+
+  /** 进入 / 退出查字态 */
+  const toggleLens = useCallback(() => {
+    if (!dock) return;
+    if (lens?.blockId === dock.block.id) {
+      setLens(null);
+      setCard(null);
+      return;
+    }
+    preloadDict();
+    setLens({ blockId: dock.block.id, chapterTitle: dock.chapter.title });
+    toast('点这一段里的任意一个字，查看拼音、释义和组词', 4200);
+  }, [dock, lens]);
+
+  /** 查字态里点字 */
+  const onCharClick = useCallback(
+    (block: Block, e: React.MouseEvent) => {
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed && sel.toString().trim()) return;
+      const hit = hitCharAt(e.clientX, e.clientY);
+      if (!hit) {
+        toast('没有点到字，再试一次');
+        return;
+      }
+      void openLookup('char', hit.char, block.id, hit.rect, lens?.chapterTitle ?? '');
+    },
+    [lens?.chapterTitle, openLookup]
+  );
+
+  /** 划词查词：1 个字查字，多个字查词 */
+  const lookupFromSelection = useCallback(() => {
+    if (!selection || !book) return;
+    // 去掉标点与空白，只取第一段连续的汉字
+    const run = selection.text.match(/\p{Script=Han}+/u)?.[0] ?? '';
+    const chars = [...run];
+    if (chars.length === 0) {
+      toast('选中的内容里没有汉字');
+      return;
+    }
+    if (chars.length > 8) {
+      toast('一次最多查 8 个字');
+      return;
+    }
+    const blockId = selection.ranges[0].blockId;
+    const chapter = book.chapters.find((c) => c.id === blockId.split('#')[0]);
+    const rect = selection.rect;
+    setSelection(null);
+    window.getSelection()?.removeAllRanges();
+    lastToolbarClose.current = Date.now();
+    void openLookup(
+      chars.length > 1 ? 'word' : 'char',
+      chars.join(''),
+      blockId,
+      rect,
+      chapter?.title ?? ''
+    );
+  }, [selection, book, openLookup]);
+
+  const vocab = settings.vocab ?? [];
+  const currentTerm = lookup ? (lookup.kind === 'char' ? lookup.char.char : lookup.word.word) : '';
+  const savedTerm = vocab.some((v) => v.term === currentTerm);
+
+  const toggleSave = useCallback(() => {
+    if (!lookup) return;
+    const term = lookup.kind === 'char' ? lookup.char.char : lookup.word.word;
+    const exists = vocab.some((v) => v.term === term);
+    const next = exists
+      ? vocab.filter((v) => v.term !== term)
+      : [
+          {
+            term,
+            pinyin: readingOf(lookup),
+            brief: briefOf(lookup),
+            at: Date.now(),
+            kind: lookup.kind,
+          },
+          ...vocab,
+        ].slice(0, 200);
+    update({ vocab: next });
+    toast(exists ? `已从生字本移除「${term}」` : `已收进生字本「${term}」`);
+  }, [lookup, vocab, update]);
+
+  const removeVocab = useCallback(
+    (term: string) => {
+      update({ vocab: vocab.filter((v) => v.term !== term) });
+    },
+    [vocab, update]
+  );
+
+  const pickVocab = useCallback(
+    (v: VocabEntry) => {
+      if (!card) return;
+      void openLookup(v.kind, v.term, card.blockId, null, card.chapterTitle, card.anchor);
+    },
+    [card, openLookup]
+  );
+
+  const retryLookup = useCallback(() => {
+    const last = lastLookupRef.current;
+    if (!last) return;
+    void openLookup(last.kind, last.key, last.blockId, last.charRect, last.chapterTitle, card?.anchor);
+  }, [card?.anchor, openLookup]);
+
+  const speak = useCallback((text: string) => {
+    if (!text) return;
+    try {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'zh-CN';
+      u.rate = 0.85;
+      const voices = window.speechSynthesis?.getVoices() ?? [];
+      const zh = voices.find((v) => /^zh|Chinese|中文/i.test(`${v.lang} ${v.name}`));
+      if (zh) u.voice = zh;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+    } catch {
+      toast('这台电脑没有可用的中文语音');
+    }
   }, []);
 
   // ── 笔记 ──
@@ -603,6 +823,7 @@ export function Reader({ bookId, onBack, openTarget }: Props) {
     (noteId: string) => {
       const note = notes.find((n) => n.id === noteId);
       if (!note) return;
+      closeDock();
       setEditor({
         open: true,
         noteId: note.id,
@@ -618,7 +839,7 @@ export function Reader({ bookId, onBack, openTarget }: Props) {
       });
       lastToolbarClose.current = Date.now();
     },
-    [notes]
+    [notes, closeDock]
   );
 
   const saveEditor = useCallback(
@@ -728,7 +949,14 @@ export function Reader({ bookId, onBack, openTarget }: Props) {
         const c = scrollRef.current;
         if (c) c.scrollBy({ top: e.shiftKey ? -c.clientHeight * 0.86 : c.clientHeight * 0.86, behavior: 'smooth' });
       } else if (e.key === 'Escape') {
-        if (panel) {
+        if (card) {
+          setCard(null);
+          lookupSeq.current += 1;
+        } else if (lens) {
+          setLens(null);
+        } else if (dock) {
+          setDock(null);
+        } else if (panel) {
           setPanel(null);
         } else if (selection) {
           setSelection(null);
@@ -764,7 +992,7 @@ export function Reader({ bookId, onBack, openTarget }: Props) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [panel, setPanel, settings.fontSize, update, selection, onBack, book, blockChars, totalChars, isPaged, prevPage, nextPage, navOpen]);
+  }, [panel, setPanel, settings.fontSize, update, selection, onBack, book, blockChars, totalChars, isPaged, prevPage, nextPage, navOpen, card, lens, dock]);
 
   // 读到接近结尾时，提供「标记读完」的入口（不自动判定）
   const ratioNow = useReader((s) => s.progress?.ratio ?? 0);
@@ -804,13 +1032,46 @@ export function Reader({ bookId, onBack, openTarget }: Props) {
     toast('已取消「读完」，回到在读');
   }, []);
 
-  // ── 打开面板时清空选区 ──
+  // ── 打开面板时清空选区与浮层 ──
   useEffect(() => {
     if (panel) {
       setSelection(null);
       window.getSelection()?.removeAllRanges();
+      closeDock();
     }
-  }, [panel]);
+  }, [panel, closeDock]);
+
+  // ── 点空白处收走段落坞 / 查字态 / 字典卡 ──
+  useEffect(() => {
+    if (!dock && !lens && !card) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (!t) return;
+      if (t.closest('.para-dock, .dict-card, .dict-ring')) return;
+      if (lens) {
+        const blockEl = document.getElementById(lens.blockId);
+        if (blockEl?.contains(t)) return;
+      }
+      if (dock) {
+        const blockEl = document.getElementById(dock.block.id);
+        if (blockEl?.contains(t)) return;
+      }
+      closeDock();
+    };
+    window.addEventListener('mousedown', onDown, true);
+    return () => window.removeEventListener('mousedown', onDown, true);
+  }, [dock, lens, card, closeDock]);
+
+  // ── 滚动模式下，滚动即收走浮层（位置不再有效） ──
+  useEffect(() => {
+    if (isPaged) return;
+    if (!dock && !lens && !card) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => closeDock();
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [isPaged, dock, lens, card, closeDock]);
 
   const seek = useCallback(
     (r: number) => {
@@ -908,6 +1169,9 @@ export function Reader({ bookId, onBack, openTarget }: Props) {
       onBlockClick={onBlockClick}
       onNoteClick={onNoteClick}
       onImageClick={setLightbox}
+      focusedBlockId={dock?.block.id ?? null}
+      lensBlockId={lens?.blockId ?? null}
+      onCharClick={onCharClick}
       isLast={i === book.chapters.length - 1}
       totalChars={book.meta.totalChars}
       paged={isPaged}
@@ -1053,18 +1317,62 @@ export function Reader({ bookId, onBack, openTarget }: Props) {
         onLibrary={onBack}
       />
 
-      {paraMenu && (
-        <ParaActionMenu
-          rect={paraMenu.rect}
-          marked={mark?.blockId === paraMenu.block.id}
+      {dock && !card && (
+        <ParaDock
+          blockId={dock.block.id}
+          lens={lens?.blockId === dock.block.id}
+          marked={mark?.blockId === dock.block.id}
+          onLookup={toggleLens}
           onMark={() => {
-            markHere(paraMenu.block, paraMenu.chapter);
-            setParaMenu(null);
+            markHere(dock.block, dock.chapter);
+            setDock(null);
           }}
-          onNote={() => openScope(paraMenu.block, paraMenu.chapter)}
-          onClose={() => setParaMenu(null)}
+          onNote={() => openScope(dock.block, dock.chapter)}
+          onClose={closeDock}
         />
       )}
+
+      {card?.charRect && (
+        <span
+          className="dict-ring"
+          aria-hidden
+          style={{
+            left: card.charRect.left - 3,
+            top: card.charRect.top - 2,
+            width: card.charRect.width + 6,
+            height: card.charRect.height + 4,
+          }}
+        />
+      )}
+
+      <DictCard
+        open={!!card}
+        result={lookup}
+        term={card?.key ?? ''}
+        termKind={card?.kind ?? 'char'}
+        loading={dictLoading}
+        error={dictError}
+        anchor={card?.anchor ?? null}
+        saved={savedTerm}
+        vocab={vocab}
+        onClose={() => {
+          setCard(null);
+          lookupSeq.current += 1;
+        }}
+        onToggleSave={toggleSave}
+        onRetry={retryLookup}
+        onLookupChar={(ch) => {
+          if (!card) return;
+          void openLookup('char', ch, card.blockId, card.charRect, card.chapterTitle, card.anchor);
+        }}
+        onLookupWord={(w) => {
+          if (!card) return;
+          void openLookup('word', w, card.blockId, card.charRect, card.chapterTitle, card.anchor);
+        }}
+        onPickVocab={pickVocab}
+        onRemoveVocab={removeVocab}
+        onSpeak={speak}
+      />
 
       <NoteScopeDialog
         open={!!scope}
@@ -1121,6 +1429,7 @@ export function Reader({ bookId, onBack, openTarget }: Props) {
             toast('已复制');
           }
         }}
+        onLookup={lookupFromSelection}
       />
 
       <NoteEditor

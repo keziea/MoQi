@@ -19,6 +19,7 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     target: 'chrome128',
-    chunkSizeWarningLimit: 1200,
+    // 内置字词库是独立 chunk，只在第一次查字时按需加载；体积换离线与即时
+    chunkSizeWarningLimit: 6000,
   },
 });

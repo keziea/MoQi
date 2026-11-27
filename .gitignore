@@ -20,6 +20,9 @@ _待删除/
 mt*/
 win-unpacked/
 
+# 安装包 / 绿色版压缩包：走 GitHub / Gitee Release 附件，不进 Git 历史
+release/
+
 # Electron 打包二进制，源码仓库只存代码，不存编译产物
 *.asar
 

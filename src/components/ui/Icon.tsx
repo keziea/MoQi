@@ -43,6 +43,8 @@ type IconName =
   | 'calendar'
   | 'target'
   | 'flame'
+  | 'volume'
+  | 'dictionary'
   | 'arrow-up-right';
 
 const PATHS: Record<IconName, ReactNode> = {
@@ -250,6 +252,20 @@ const PATHS: Record<IconName, ReactNode> = {
   ),
   flame: (
     <path d="M12 21c3.6 0 6.2-2.5 6.2-6 0-2.5-1.4-4.6-3.8-6.8-.6 1.8-1.6 3-3 3.8.2-3.4-1.3-6-4-7.8.2 2.6-1.6 4.4-2.8 6.4-.8 1.4-1.2 2.8-1.2 4.4 0 3.5 2.6 6 6.2 6H12Z" />
+  ),
+  volume: (
+    <>
+      <path d="M11 5 6.6 8.8H3.2v6.4h3.4L11 19V5Z" />
+      <path d="M15.2 8.8a4.5 4.5 0 0 1 0 6.4" />
+      <path d="M18 6a8.4 8.4 0 0 1 0 12" />
+    </>
+  ),
+  dictionary: (
+    <>
+      <path d="M5 4.6A1.6 1.6 0 0 1 6.6 3H19v18H6.6A1.6 1.6 0 0 1 5 19.4V4.6Z" />
+      <path d="M8.6 3v18" />
+      <path d="M12.4 8.4h3.2M12.4 12h3.2" />
+    </>
   ),
   'arrow-up-right': (
     <>

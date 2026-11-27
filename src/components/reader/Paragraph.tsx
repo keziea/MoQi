@@ -9,6 +9,11 @@ interface Props {
   onClick?: (block: Block, rect: DOMRect) => void;
   onNoteClick?: (noteId: string) => void;
   onImageClick?: (src: string) => void;
+  /** 这一段正被页面操作坞选中 */
+  focused?: boolean;
+  /** 查字模式：点字而不是点段 */
+  lens?: boolean;
+  onCharClick?: (block: Block, e: React.MouseEvent) => void;
   paged?: boolean;
 }
 
@@ -44,6 +49,9 @@ export const Paragraph = memo(function Paragraph({
   onClick,
   onNoteClick,
   onImageClick,
+  focused = false,
+  lens = false,
+  onCharClick,
   paged = false,
 }: Props) {
   if (block.type === 'hr') {
@@ -98,6 +106,8 @@ export const Paragraph = memo(function Paragraph({
           data-kind={n.kind ?? 'selection'}
           data-note-id={n.id}
           onClick={(e) => {
+            // 查字模式下，高亮上的字也要能查；冒泡交给段落处理
+            if (lens) return;
             e.stopPropagation();
             onNoteClick?.(n.id);
           }}
@@ -117,9 +127,13 @@ export const Paragraph = memo(function Paragraph({
     <Tag
       id={block.id}
       data-block-id={block.id}
-      className={`${cls}${marked ? ' marked' : ''}`}
+      className={`${cls}${marked ? ' marked' : ''}${focused ? ' blk-focus' : ''}${lens ? ' blk-lens' : ''}`}
       onClick={(e: React.MouseEvent) => {
         // 高亮内部点击已 stopPropagation
+        if (lens) {
+          onCharClick?.(block, e);
+          return;
+        }
         onClick?.(block, (e.currentTarget as HTMLElement).getBoundingClientRect());
       }}
     >
