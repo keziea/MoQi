@@ -9,6 +9,14 @@
 一款 Windows 桌面中文阅读器。没有账号、没有广告、没有推荐、没有云同步。<br />
 打开先看到自己的工作台，翻开书就只剩文字。
 
+<p>
+  <a href="#下载">
+    <img src="docs/assets/download-button.png" width="460" alt="下载墨栖：跳到下载区，选择安装版或绿色版" />
+  </a>
+</p>
+
+<p><sub>Windows 10 / 11 · 安装版 / 绿色版 · 100% 本地，不联网</sub></p>
+
 [![License: MIT](https://img.shields.io/badge/license-MIT-c9a227?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-4b5563?style=flat-square)](#)
 [![Electron](https://img.shields.io/badge/Electron-33-47848f?style=flat-square&logo=electron&logoColor=white)](#)
@@ -57,7 +65,7 @@
 - **离线**：字词库内置在安装包里（新华字典 + 现代汉语词典社区文本），不联网、不上传查询。
 - **设计依据**：拆分注意效应、弹出式注释研究、眼动回视、空间一致性——位置不是拍脑袋定的，详见 `docs/07 §3.16`。
 
-> 安装包与绿色版已构建到 v0.8.0；v0.9.0 先更新源码。完整变更见 [CHANGELOG](docs/CHANGELOG.md)。
+> 安装包与绿色版已构建到 v0.9.0。完整变更见 [CHANGELOG](docs/CHANGELOG.md)。
 
 ## 上一版 · v0.8.0（2026-11-21）
 
@@ -231,33 +239,37 @@
 
 ## 快速开始
 
-### 一、下载（点蓝字，直接开始下载）
+### 下载
+
+> **当前版本 v0.9.0** · Windows 10 / 11（x64）· 安装版约 78MB / 绿色版约 68MB
+>
+> 不知道怎么选？**下安装版**：双击 → 选安装位置 → 桌面出现图标，以后从桌面打开。  
+> 不想装进系统？**下绿色版**：解压 → 双击「启动墨栖.cmd」，整个文件夹可以搬走。
 
 **🇨🇳 国内用户（Gitee，速度快）**
 
-| 版本 | 下载 |
-|---|---|
-| **安装版**　76MB　装进电脑，桌面有图标　**← 推荐** | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.8.0/Moqi-0.8.0-Setup.exe)** |
-| **解压版**　66MB　不装进系统，解压就用 | 👉 **[点此下载](https://gitee.com/azs_A/MoQi/releases/download/v0.8.0/Moqi-0.8.0-portable.7z)** |
+| 方式 | 适合谁 | 下载 |
+|---|---|---|
+| **安装版**　约 78MB　**← 推荐** | 装进电脑，桌面有图标，开始菜单能搜到 | 👉 **[下载 v0.9.0](https://gitee.com/azs_A/MoQi/releases/download/v0.9.0/Moqi-0.9.0-Setup.exe)** |
+| **绿色版**　约 68MB | 不装进系统，解压就用，放 U 盘也行 | 👉 **[下载 v0.9.0](https://gitee.com/azs_A/MoQi/releases/download/v0.9.0/Moqi-0.9.0-portable.7z)** |
 
 **🌍 国外用户（GitHub）**
 
-| 版本 | 下载 |
-|---|---|
-| **安装版**　76MB　**← 推荐** | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.8.0/Moqi-0.8.0-Setup.exe)** |
-| **解压版**　66MB | 👉 **[点此下载](https://github.com/keziea/MoQi/releases/download/v0.8.0/Moqi-0.8.0-portable.7z)** |
+| 方式 | 适合谁 | 下载 |
+|---|---|---|
+| **安装版**　约 78MB　**← 推荐** | 装进电脑，桌面有图标，开始菜单能搜到 | 👉 **[下载 v0.9.0](https://github.com/keziea/MoQi/releases/download/v0.9.0/Moqi-0.9.0-Setup.exe)** |
+| **绿色版**　约 68MB | 不装进系统，解压就用，放 U 盘也行 | 👉 **[下载 v0.9.0](https://github.com/keziea/MoQi/releases/download/v0.9.0/Moqi-0.9.0-portable.7z)** |
 
-> **不知道怎么选？下安装版。** 双击后只需要选一个安装位置：选 `D:\` 会自动建 `D:\MoQiReader`，里面固定分好 `Program`（程序）和 `Data`（数据）。默认位置是 `C:\Users\你的用户名\AppData\Local\Programs\MoQiReader\Program`，想一眼看到就改成 D 盘。装完桌面有图标，以后从桌面打开。
+> **安装版怎么装**：双击 → 选一个安装位置（例如 `D:\`，会自动建 `D:\MoQiReader`）→ 下一步。装完桌面有图标，以后从桌面打开。
 >
-> 解压版需要用 WinRAR / 7-Zip / Bandizip 解压（都是免费软件）。压缩包根目录就是 `MoQiReader`，解压后双击 `启动墨栖.cmd`，或进 `Program` 双击「墨栖.exe」。
+> **绿色版怎么用**：用 WinRAR / 7-Zip / Bandizip 解压 → 双击根目录的 `启动墨栖.cmd`，或进 `Program` 双击「墨栖.exe」。压缩包根目录就是 `MoQiReader`，整个文件夹可以搬到 D 盘、U 盘。
 >
-> ⚠️ 解压版**别放在中文名字的文件夹里**（比如「我的书」「新建文件夹」），可能打不开。
-> 放到 D 盘一个英文名的文件夹最稳，例如 `D:\Moqi`。
+> ⚠️ 绿色版**别放在中文名字的文件夹里**（比如「我的书」「新建文件夹」），可能打不开。放到 `D:\Moqi` 这种英文路径最稳。
 
 **想看源码、或者找历史版本？**
 [GitHub 仓库](https://github.com/keziea/MoQi) ｜ [Gitee 仓库](https://gitee.com/azs_A/MoQi)
 
-### 二、第一次用，三步就会
+### 第一次用，三步就会
 
 1. **打开软件**（双击桌面图标，或双击解压出来的「墨栖.exe」）
 2. **把书拖进去**：按住你的书文件（EPUB / MOBI / PDF / TXT），拖到软件窗口里松手。
@@ -266,7 +278,7 @@
 
 关掉再打开，会**自动回到上次读到的那一行**，不用自己记页码。
 
-### 三、我想改这个软件（懂技术的人看）
+### 我想改这个软件（懂技术的人看）
 
 > 这一节写给「要改代码、自己打包」的人。只想用软件的话，上面两条就够了。
 

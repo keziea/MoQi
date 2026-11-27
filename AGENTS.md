@@ -163,7 +163,7 @@ E:/VibeCoding/MoQi-main/MoQi-main/
 | 设置与主题（4 套） | ✅ 完成（含翻页方式、顶栏自动淡出） |
 | 备份与恢复 | ✅ 完成 · 完整 ZIP（书架/笔记/进度/书文件）；压缩包与文件夹两种导入；导入前自动留底 |
 | 数据位置 | ✅ 完成 · v0.8 单根布局：只选一个安装位置，自动建 `MoQiReader\Program` + `MoQiReader\Data`；数据由 exe 相对推导，不写指针/AppData；旧 v0.7 数据首次启动自动迁移；书库外部书收进 `Data\books`；移动整个容器后路径自愈；设置页只读、不可改 |
-| 打包发布 | ✅ v0.8.0 安装包与绿色版已构建（绿色版根目录 `MoQiReader`，内含 `Program` + 空 `Data`）；NSIS 编译通过；绿色版启动冒烟通过；`test:data` 117 + `test:single-root` 29 + `test:installer` 14 + 打包版 UI 回归 1 全过 |
+| 打包发布 | ✅ v0.9.0 安装包（78MB）与绿色版（68MB）已构建（绿色版根目录 `MoQiReader`，内含 `Program` + 空 `Data`）；NSIS 编译通过；`test:data` 117 + `test:single-root` 29 + `test:installer` 14 全过 |
 
 **已验证的关键指标（2026-11-08）**
 
@@ -207,7 +207,7 @@ E:/VibeCoding/MoQi-main/MoQi-main/
 | 位置 | 作用 | 是否进 Git |
 |---|---|---|
 | `src/` `electron/` `shared/` `docs/` `scripts/` `build/` | 真正的源码与文档 | 是 |
-| `release/` | 对外发布的安装版与 7z 解压版（当前 v0.8.0），作为 GitHub / Gitee Release 附件上传；**体积大，不入 Git** | 否 |
+| `release/` | 对外发布的安装版与 7z 解压版（当前 v0.9.0），作为 GitHub / Gitee Release 附件上传；**体积大，不入 Git** | 否 |
 | `_待删除/` | 清理缓冲区。删除一律**先移进来观察**，确认几天没问题再清空 | 否（`_待删除/` 已忽略） |
 | `out-*/` `dist/` `dist-electron/` | 构建中间产物，可随时用 `npm run build` / `npm run dist` 重新生成 | 否 |
 | `node_modules/` `.git/` | 依赖与全部版本历史，**不得删除** | 否 / 是 |
