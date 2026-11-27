@@ -6,6 +6,7 @@ import type { OpenTarget } from '@/lib/workspace';
 import { Reader } from '@/pages/Reader';
 import { ToastHost } from '@/components/ui/Toast';
 import { ImportDialog } from '@/components/shelf/ImportDialog';
+import { AboutDialog } from '@/components/ui/AboutDialog';
 import { GoalCelebration } from '@/components/workspace/GoalCelebration';
 import { formatShortDuration, todayStr } from '@/lib/format';
 import { useSettings } from '@/store/useSettings';
@@ -205,6 +206,7 @@ export default function App() {
       />
 
       <ImportDialog />
+      <AboutDialog />
       <ToastHost />
     </div>
   );

@@ -5,5 +5,6 @@ import './styles/index.css';
 import './styles/reader.css';
 import './styles/shelf.css';
 import './styles/workspace.css';
+import './styles/about.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(<App />);

@@ -72,6 +72,7 @@ const api = {
     info: () => ipcRenderer.invoke('app:info'),
     openDataDir: () => ipcRenderer.invoke('app:openDataDir'),
     openPath: (p: string) => ipcRenderer.invoke('app:openPath', p),
+    openExternal: (url: string) => ipcRenderer.invoke('app:openExternal', url),
   },
   win: {
     setFullScreen: (on: boolean) => ipcRenderer.invoke('win:setFullScreen', { on }),

@@ -181,11 +181,21 @@
 
 .ws-version {
   margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
   font-family: var(--font-serif);
-  font-size: 8.5px;
-  letter-spacing: 0.14em;
+  font-size: 9px;
+  letter-spacing: 0.12em;
   color: var(--text-tertiary);
-  opacity: 0.55;
+  opacity: 0.65;
+  cursor: pointer;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.ws-version:hover {
+  color: var(--accent);
+  opacity: 1;
 }
 
 /* ── 右侧主区 ─────────────────────────────────────────────── */
@@ -235,6 +245,27 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.ws-version-chip {
+  display: inline-flex;
+  height: 24px;
+  align-items: center;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.ws-version-chip:hover {
+  border-color: var(--accent-line);
+  background: var(--accent-tint);
+  color: var(--accent);
 }
 
 .ws-local {

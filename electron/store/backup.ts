@@ -22,6 +22,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { app } from 'electron';
+import { readAppVersion } from '../version';
 import iconv from 'iconv-lite';
 import type { BookFormat, BookMeta, BookVariant, NoteCategoryDef, Settings } from '../../shared/models';
 import { HIGHLIGHT_COLORS } from '../../shared/models';
@@ -372,7 +373,7 @@ export async function exportBackup(
       app: APP_TAG,
       kind: 'moqi-backup',
       formatVersion: BACKUP_FORMAT_VERSION,
-      appVersion: app.getVersion(),
+      appVersion: readAppVersion(),
       createdAt: Date.now(),
       includeBooks: !!options.includeBooks,
       counts: plan.counts,

@@ -15,6 +15,7 @@ const ROOT = path.join(__dirname, '..');
 const USERDATA = path.join(ROOT, '.userData');
 const OUT = path.join(ROOT, 'docs', 'screenshots');
 
+app.setAppPath(ROOT);
 app.setPath('userData', USERDATA);
 app.setPath('documents', ROOT);
 fs.mkdirSync(OUT, { recursive: true });

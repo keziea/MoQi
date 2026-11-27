@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { DEFAULT_NOTE_CATEGORIES } from '../../shared/models';
+import { readAppVersion } from '../version';
 import type {
   BookMeta,
   DailyStat,
@@ -670,7 +671,12 @@ export function registerIpc(): void {
   ipcMain.handle('app:info', () => {
     const root = getDataRootInfo();
     return {
-      version: app.getVersion(),
+      version: readAppVersion(),
+      electron: process.versions.electron ?? '',
+      chrome: process.versions.chrome ?? '',
+      node: process.versions.node ?? '',
+      platform: process.platform,
+      arch: process.arch,
       dataDir: paths.data(),
       dataRoot: root.root,
       isCustomDataRoot: root.isCustom,
@@ -966,6 +972,19 @@ export function registerIpc(): void {
 
   ipcMain.handle('app:openDataDir', async () => {
     await shell.openPath(paths.data());
+    return true;
+  });
+
+  // 关于面板只允许打开这几个官方页面，避免渲染进程拿到任意 URL 就能调系统浏览器
+  const SAFE_EXTERNAL = new Set([
+    'https://github.com/keziea/MoQi',
+    'https://github.com/keziea/MoQi/releases',
+    'https://gitee.com/azs_A/MoQi',
+    'https://gitee.com/azs_A/MoQi/releases',
+  ]);
+  ipcMain.handle('app:openExternal', async (_e, url: string) => {
+    if (typeof url !== 'string' || !SAFE_EXTERNAL.has(url)) return false;
+    await shell.openExternal(url);
     return true;
   });
 

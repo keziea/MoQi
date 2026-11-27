@@ -5,8 +5,8 @@
  *   env -u ELECTRON_RUN_AS_NODE ./node_modules/.bin/electron scripts/capture-screens.js
  *
  * 隔离方式：
- *   - userData 指到 <app>/.userData，不读写 %APPDATA%/moqi-reader
- *   - documents 指到 <app>，于是默认书库变成 <app>/墨栖书库（只有示例书）
+ *   - userData 指到一个全新的临时目录，不读写 %APPDATA%/moqi-reader，也不复用上次的扫描结果
+ *   - documents 指到 <app>/.sample-books（只放 3 本示例书）
  *   - app.getAppPath() 也是 <app>，不会扫到真实项目里的书
  *
  * 产物：docs/screenshots/*.png
@@ -14,16 +14,29 @@
 const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 const ROOT = path.join(__dirname, '..');
-const USERDATA = path.join(ROOT, '.userData');
+// 每次截图用全新的临时 userData，绝不碰作者真实书库，也不会把上次扫描的脏数据带进来
+const USERDATA = fs.mkdtempSync(path.join(os.tmpdir(), 'moqi-capture-'));
+const SAMPLE_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), 'moqi-sample-'));
+const SAMPLE_DIR = path.join(SAMPLE_ROOT, '墨栖书库');
+fs.mkdirSync(SAMPLE_DIR, { recursive: true });
+for (const name of fs.readdirSync(path.join(ROOT, '.sample-books'))) {
+  if (name.endsWith('.txt')) {
+    fs.copyFileSync(path.join(ROOT, '.sample-books', name), path.join(SAMPLE_DIR, name));
+  }
+}
 const OUT = path.join(ROOT, 'docs', 'screenshots');
 
+// 截图脚本的入口不在项目根，Electron 默认会把 app path 指到临时目录，
+// readAppVersion() 会读不到项目根的 package.json。这里显式指回项目根，
+// 保证截图里的版本号和 package.json 一致。
+app.setAppPath(ROOT);
 app.setPath('userData', USERDATA);
-app.setPath('documents', ROOT);
+app.setPath('documents', SAMPLE_ROOT);
 
 fs.mkdirSync(OUT, { recursive: true });
-fs.mkdirSync(USERDATA, { recursive: true });
 
 require('../dist-electron/electron/main.js');
 
@@ -188,6 +201,13 @@ async function run(win) {
   await clickText(win, '阅读记录');
   await wait(2000);
   await shot(win, '07-history');
+
+  // 关于面板（版本号来自 package.json，图里应和当前版本一致）
+  await clickText(win, '首页');
+  await wait(1600);
+  await win.webContents.executeJavaScript(`document.querySelector('.ws-version-chip')?.click()`);
+  await wait(900);
+  await shot(win, '09-about');
 
   console.log('done');
   app.exit(0);

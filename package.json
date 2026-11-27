@@ -1,6 +1,6 @@
 {
   "name": "moqi-reader",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "moqi": {
     "appNameEn": "moqi-reader",
     "containerDir": "MoQiReader",
@@ -43,13 +43,16 @@
     "build:renderer": "vite build",
     "build": "node scripts/gen-names.js && npm run build:electron && npm run build:renderer",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "npm run typecheck && npm run test:data && npm run test:single-root && npm run test:installer",
+    "test": "npm run check:version && npm run typecheck && npm run test:data && npm run test:single-root && npm run test:installer",
     "test:data": "npm run build:electron && node scripts/run-electron-script.js scripts/test-userdata.js",
     "test:single-root": "node scripts/run-electron-script.js scripts/test-single-root.js",
     "test:ui": "node scripts/test-ui-empty-shelf.js",
     "test:installer": "node scripts/test-installer-paths.js",
     "dist": "npm run build && electron-builder --win",
-    "pack": "node scripts/pack.js"
+    "pack": "node scripts/pack.js",
+    "check:version": "node scripts/check-version.js",
+    "predist": "npm run check:version",
+    "prepack": "npm run check:version"
   },
   "dependencies": {
     "chardet": "^2.1.0",

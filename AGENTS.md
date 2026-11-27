@@ -2,7 +2,7 @@
 
 > **任何人（包括 AI）接手本项目，只读这一个文件，就应当知道：这是什么、该读哪些文档、什么不能动、改了什么会牵连什么。**
 >
-> 最后更新：2026-11-27 · 版本 v0.9.0
+> 最后更新：2026-11-27 · 版本 v0.9.1
 
 ---
 
@@ -23,7 +23,7 @@
 | 技术栈 | Electron 33 + Vite 6 + React 18 + TypeScript 5 + Tailwind 3 + zustand 5 + framer-motion |
 | 开发运行 | `npm run dev` |
 | 生产构建 | `npm run build` |
-| 打 Windows 安装包 | `npm run dist` → 输出到 `out-app/`；发布前把 Setup 与 portable.7z 复制到 `release/` |
+| 打 Windows 安装包 | `npm run dist` → 输出到 `out-app/`；发布前把 Setup 与 portable.7z 复制到 `release/`；`predist` 会自动跑 `npm run check:version` |
 | 安装位置 | 只选一个上级目录，自动创建 `<上级>/MoQiReader/`，里面固定 `Program` + `Data` |
 | 程序目录 | `<安装位置>/MoQiReader/Program/`（exe、resources、locales） |
 | 用户数据 | `<安装位置>/MoQiReader/Data/`（library.json / books / user / backups / exports / logs / runtime）；不写 `%APPDATA%` 业务数据 |
@@ -50,12 +50,13 @@ AGENTS.md（本文件 · 宪法）
    │
    ├─► docs/05-阅读引擎与定位.md     ← 锚点、进度、续读、标记（核心算法）
    ├─► docs/08-功能清单与验收.md     ← 逐条可打勾的验收标准
-   └─► docs/09-构建与发布.md         ← 打包排错
+   ├─► docs/09-构建与发布.md         ← 打包排错
+   └─► docs/12-版本管理与发布清单.md ← 每次发版必读：哪些必须改、哪些不许动
 ```
 
 **阅读关系说明：**
 
-- `00` 是**为什么**做，`06/07` 是**做成什么样**，`01/02/03/04` 是**怎么搭起来**，`05` 是**核心算法**，`08` 是**验收尺子**。
+- `00` 是**为什么**做，`06/07` 是**做成什么样**，`01/02/03/04` 是**怎么搭起来**，`05` 是**核心算法**，`08` 是**验收尺子**，`12` 是**发版尺子**。
 - 改 UI 前必须读 `06`；改数据结构前必须读 `03`；改阅读逻辑前必须读 `05`。
 - `docs/CHANGELOG.md` 是流水账，随时可看，用于判断"最近动过什么"。
 
@@ -106,6 +107,7 @@ AGENTS.md（本文件 · 宪法）
 | 修改解析逻辑 | `docs/04`、**`blockId` 生成规则不可变**（否则笔记全部失效）、`docs/05` |
 | 修改存储结构 | `docs/03`、迁移函数、`docs/CHANGELOG.md`（标注 BREAKING） |
 | 修改字词库 / 查字命中 | `docs/07 §3.14–3.16`、`scripts/build-dict.js`、`src/lib/dict.ts`、`src/lib/textHit.ts`、`docs/08 M` |
+| 改版本 / 发版 | **`docs/12` 必读**、`package.json`、`package-lock.json`、`README.md`、`AGENTS.md`、`docs/CHANGELOG.md`、`docs/releases/vX.md`、`docs/screenshots/`、`scripts/check-version.js` |
 | **任何改动** | `docs/CHANGELOG.md` |
 
 ### 4.1 三个"绝对不能动"的契约
@@ -159,16 +161,17 @@ E:/VibeCoding/MoQi-main/MoQi-main/
 | 目录系统 | ✅ 完成 · 严格使用文件自带 NCX：9 章 / 26 节 / 107 小节，共 142 条；默认展开当前章（前言时展开第 1 章）；当前摘要、搜索、已读态 |
 | 笔记系统 | ✅ 完成（划词 4 色 / 顶栏写整段 / 跨段 / 导航栏写笔记 / 导出） |
 | 查字与字词卡 | ✅ v0.9 · 点段落 → 页边固定操作坞（查字 / 读到这 / 写笔记）；查字态点任意汉字出拼音、部首笔画、分条释义、组词；划词查词；多音字全列；生字本随设置备份；字词库离线内置、按需加载 |
+| 版本可见性 | ✅ v0.9.1 · 工作台右上角 `vX` 胶囊、侧栏版本号、阅读设置「关于墨栖」；面板含版本、正式版/开发版、Electron/Chromium/Node、系统、数据目录、发行版入口、复制版本信息；版本只来自 `app.getVersion()` |
 | 计时与数据面板 | ✅ 完成 · 实时 mm:ss、今天/这本书今天、暂停/重置、今日小结、四类统计模板、按书明细、7 天图、累计 |
 | 设置与主题（4 套） | ✅ 完成（含翻页方式、顶栏自动淡出） |
 | 备份与恢复 | ✅ 完成 · 完整 ZIP（书架/笔记/进度/书文件）；压缩包与文件夹两种导入；导入前自动留底 |
 | 数据位置 | ✅ 完成 · v0.8 单根布局：只选一个安装位置，自动建 `MoQiReader\Program` + `MoQiReader\Data`；数据由 exe 相对推导，不写指针/AppData；旧 v0.7 数据首次启动自动迁移；书库外部书收进 `Data\books`；移动整个容器后路径自愈；设置页只读、不可改 |
-| 打包发布 | ✅ v0.9.0 安装包（78MB）与绿色版（68MB）已构建（绿色版根目录 `MoQiReader`，内含 `Program` + 空 `Data`）；NSIS 编译通过；`test:data` 117 + `test:single-root` 29 + `test:installer` 14 全过 |
+| 打包发布 | ✅ v0.9.1 安装包（78MB）与绿色版（68MB）已构建（绿色版根目录 `MoQiReader`，内含 `Program` + 空 `Data`）；NSIS 编译通过；`test:data` 117 + `test:single-root` 29 + `test:installer` 14 全过 |
 
-**已验证的关键指标（2026-11-08）**
+**已验证的关键指标（2026-11-27）**
 
 - 本书 EPUB 解析：31 章，142 条原生目录（9 章 / 26 节 / 107 小节），封面 130KB
-- 生产构建：JS 416.69KB（gzip 132.71KB）+ CSS 110.76KB（gzip 19.65KB）
+- 生产构建：JS 499.4KB（gzip 158.9KB）+ CSS 158.6KB（gzip 27.1KB）+ 字词库 4.55MB（gzip 2.13MB，按需加载）
 - 工作台：冷启动首页即显示今天的累计时长；今日目标 30→45→30 持久化；全库笔记 1 条可回原文；52 周热力图 overflow 0；960×640 左栏 5 项不重叠、内容无横向溢出
 - 工作台排版：1320/960 面包屑与页头左缘对齐；`.ws-view` 叶子文本相交检测为空；阅读统计卡无大字水印；目标环文字与环心误差 0；继续阅读 2% 有全宽轨道；书架尾卡常显；首页书架一角书卡区 364 + 引文区 678.4，947×603 仍为左右结构且无溢出
 - 续读精度：关闭前 `c0#15 / delta=-271.61`，重开后完全一致
@@ -183,6 +186,8 @@ E:/VibeCoding/MoQi-main/MoQi-main/
 - 查字内容：单字 16141 个（部首/笔画/多音字/分条释义/组词），词语 25000 条（整词拼音 + 释义）；字词库 4.31MB，按需加载；「缝」féng/fèng 与「进来」jìn lái 实测正确
 - 生字本：收进「进来」→ `settings.json.vocab` 落盘 → 列表可重看；Esc 依次关卡片 / 退查字态；翻页后坞与卡片自动收起
 - 夜间主题：字词卡、字框、正文底色全部走变量，无白块、无硬编码色值
+- 版本可见性（v0.9.1）：工作台顶栏 `v0.9.1` 胶囊、侧栏、阅读设置、关于面板四处一致；关于面板显示 Electron 33.4.11 / Chromium 130.0.6723.191 / Node 20.18.3，数据目录只显示最后一级文件夹名
+- 发版检查：`npm run check:version` 全绿（package / lock / README 四个链接 / 截图 `?v=0.9.1` / AGENTS / CHANGELOG / 发布说明）；`predist` 已接入
 
 > 每完成一个模块，**回来改这张表**。这是判断项目进度的唯一依据。
 
@@ -197,6 +202,7 @@ E:/VibeCoding/MoQi-main/MoQi-main/
 5. **写完代码要自己跑起来验证**，不能只交代码不验证。
 6. **界面改完要截图自检**：留白够不够、字号是否舒适、有没有硬编码色值、暗色下是否可读。
 7. **不确定就问**，不要猜用户偏好。用户对审美要求很高，猜错代价大。
+8. **发版前先读 `docs/12`**：版本号只改 `package.json`，然后跑 `npm run check:version`；不许在 UI 里写死版本，不许覆盖已发布的同版本安装包。
 
 ---
 
@@ -207,7 +213,7 @@ E:/VibeCoding/MoQi-main/MoQi-main/
 | 位置 | 作用 | 是否进 Git |
 |---|---|---|
 | `src/` `electron/` `shared/` `docs/` `scripts/` `build/` | 真正的源码与文档 | 是 |
-| `release/` | 对外发布的安装版与 7z 解压版（当前 v0.9.0），作为 GitHub / Gitee Release 附件上传；**体积大，不入 Git** | 否 |
+| `release/` | 对外发布的安装版与 7z 解压版（当前 v0.9.1），作为 GitHub / Gitee Release 附件上传；**体积大，不入 Git** | 否 |
 | `_待删除/` | 清理缓冲区。删除一律**先移进来观察**，确认几天没问题再清空 | 否（`_待删除/` 已忽略） |
 | `out-*/` `dist/` `dist-electron/` | 构建中间产物，可随时用 `npm run build` / `npm run dist` 重新生成 | 否 |
 | `node_modules/` `.git/` | 依赖与全部版本历史，**不得删除** | 否 / 是 |

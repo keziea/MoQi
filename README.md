@@ -25,7 +25,7 @@
 
 **GitHub** · https://github.com/keziea/MoQi 　|　 **Gitee** · https://gitee.com/azs_A/MoQi
 
-<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/05-home.png" alt="墨栖工作台" width="100%" />
+<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/05-home.png?v=0.9.1" alt="墨栖工作台" width="100%" />
 
 </div>
 
@@ -54,7 +54,19 @@
 
 ---
 
-## 最新改动 · v0.9.0（2026-11-27）
+## 最新改动 · v0.9.1（2026-11-27）
+
+> 一句话：**版本终于看得见了——工作台右上角、侧栏、设置里都能看到当前版本，点开就是「关于墨栖」。**
+
+- **关于墨栖**：工作台右上角 `v0.9.1` 胶囊、左侧栏底部版本号、阅读设置底部「关于墨栖」都能打开；面板里有版本、Electron / Chromium / Node、系统、数据目录，以及 GitHub / Gitee 发行版入口。
+- **复制版本信息**：一键复制「墨栖 v0.9.1 + 运行环境 + 系统 + 数据目录」，反馈问题时直接贴。
+- **修复版本显示**：旧版工作台侧栏写死的 `v0.4` 已删掉；所有版本号只来自 `package.json`（`app.getVersion()`），以后每次发版自动变。
+- **发版不再漏改**：新增 `npm run check:version`，检查 package / README / AGENTS / CHANGELOG / 发布说明 / 下载链接；`npm run dist` 前自动跑，不通过不许打包。清单写在 `docs/12-版本管理与发布清单.md`。
+- **截图更新**：工作台与「关于」面板截图重拍，图里就是 v0.9.1。
+
+> 安装包与绿色版已构建到 v0.9.1。完整变更见 [CHANGELOG](docs/CHANGELOG.md)。
+
+## 上一版 · v0.9.0（2026-11-27）
 
 > 一句话：**点字查字典，工具固定在页边——读书时不用离开这一页，也不用跟会跑的按钮捉迷藏。**
 
@@ -67,7 +79,7 @@
 
 > 安装包与绿色版已构建到 v0.9.0。完整变更见 [CHANGELOG](docs/CHANGELOG.md)。
 
-## 上一版 · v0.8.0（2026-11-21）
+## 更早 · v0.8.0（2026-11-21）
 
 > 一句话：**只选一个安装位置，墨栖自己分好 `Program` 和 `Data`；书、笔记、备份全在 Data 里，整个文件夹搬到哪都能用。**
 
@@ -82,7 +94,7 @@
 
 > 安装包与绿色版已构建到 v0.8.0。完整变更见 [CHANGELOG](docs/CHANGELOG.md)。
 
-## 上一版 · v0.7.0（2026-11-21）
+## 更早 · v0.7.0（2026-11-21）
 
 > 一句话：**装的时候两个位置一页定好；以后换数据位置，先备份、再校验、能回滚，旧目录还留 7 天。**
 
@@ -167,43 +179,43 @@
 
 左侧五个入口，首页有今日目标环、继续阅读、连续阅读天数、最近笔记和书架一角。
 
-<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/05-home.png" alt="工作台" width="100%" />
+<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/05-home.png?v=0.9.1" alt="工作台" width="100%" />
 
 ### 书架：同一本书的多个版本，合并成一张卡
 
 格式 pill 直接摆在下方，点一下就能换一种文件读，不用翻右键菜单。
 
-<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/01-shelf.png" alt="书架" width="100%" />
+<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/01-shelf.png?v=0.9.1" alt="书架" width="100%" />
 
 ### 正文：像纸书，而不是像网页
 
 版心只占屏幕一半，一行 33 字，首行缩进两格、两端对齐。底部是「第 N / M 页」，不是无尽的滚动条。
 
-<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/02-reader.png" alt="正文" width="100%" />
+<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/02-reader.png?v=0.9.1" alt="正文" width="100%" />
 
 ### 目录：严格按原书层级
 
 这本书几章几节，目录就是几章几节，父子关系和原文件一致，不自己猜。
 
-<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/03-toc.png" alt="目录" width="100%" />
+<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/03-toc.png?v=0.9.1" alt="目录" width="100%" />
 
 ### 书籍详情：进度、时长、笔记集中在一屏
 
 下面直接选版本，EPUB 排版最好就默认选它。
 
-<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/04-book-detail.png" alt="书籍详情" width="100%" />
+<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/04-book-detail.png?v=0.9.1" alt="书籍详情" width="100%" />
 
 ### 阅读统计：不跟别人比，只跟自己比
 
 7 / 30 / 56 天的阅读时长、读得最多的书、笔记习惯放在一起，能一键复制成复盘文字。
 
-<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/06-analysis.png" alt="阅读统计" width="100%" />
+<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/06-analysis.png?v=0.9.1" alt="阅读统计" width="100%" />
 
 ### 阅读记录：把坐下来读书的日子收好
 
 一年热力图 + 按天时间线，每天读了哪本书、多久，一目了然。
 
-<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/07-history.png" alt="阅读记录" width="100%" />
+<img src="https://gcore.jsdelivr.net/gh/keziea/MoQi@main/docs/screenshots/07-history.png?v=0.9.1" alt="阅读记录" width="100%" />
 
 ---
 
@@ -241,7 +253,7 @@
 
 ### 下载
 
-> **当前版本 v0.9.0** · Windows 10 / 11（x64）· 安装版约 78MB / 绿色版约 68MB
+> **当前版本 v0.9.1** · Windows 10 / 11（x64）· 安装版约 78MB / 绿色版约 68MB
 >
 > 不知道怎么选？**下安装版**：双击 → 选安装位置 → 桌面出现图标，以后从桌面打开。  
 > 不想装进系统？**下绿色版**：解压 → 双击「启动墨栖.cmd」，整个文件夹可以搬走。
@@ -250,15 +262,15 @@
 
 | 方式 | 适合谁 | 下载 |
 |---|---|---|
-| **安装版**　约 78MB　**← 推荐** | 装进电脑，桌面有图标，开始菜单能搜到 | 👉 **[下载 v0.9.0](https://gitee.com/azs_A/MoQi/releases/download/v0.9.0/Moqi-0.9.0-Setup.exe)** |
-| **绿色版**　约 68MB | 不装进系统，解压就用，放 U 盘也行 | 👉 **[下载 v0.9.0](https://gitee.com/azs_A/MoQi/releases/download/v0.9.0/Moqi-0.9.0-portable.7z)** |
+| **安装版**　约 78MB　**← 推荐** | 装进电脑，桌面有图标，开始菜单能搜到 | 👉 **[下载 v0.9.1](https://gitee.com/azs_A/MoQi/releases/download/v0.9.1/Moqi-0.9.1-Setup.exe)** |
+| **绿色版**　约 68MB | 不装进系统，解压就用，放 U 盘也行 | 👉 **[下载 v0.9.1](https://gitee.com/azs_A/MoQi/releases/download/v0.9.1/Moqi-0.9.1-portable.7z)** |
 
 **🌍 国外用户（GitHub）**
 
 | 方式 | 适合谁 | 下载 |
 |---|---|---|
-| **安装版**　约 78MB　**← 推荐** | 装进电脑，桌面有图标，开始菜单能搜到 | 👉 **[下载 v0.9.0](https://github.com/keziea/MoQi/releases/download/v0.9.0/Moqi-0.9.0-Setup.exe)** |
-| **绿色版**　约 68MB | 不装进系统，解压就用，放 U 盘也行 | 👉 **[下载 v0.9.0](https://github.com/keziea/MoQi/releases/download/v0.9.0/Moqi-0.9.0-portable.7z)** |
+| **安装版**　约 78MB　**← 推荐** | 装进电脑，桌面有图标，开始菜单能搜到 | 👉 **[下载 v0.9.1](https://github.com/keziea/MoQi/releases/download/v0.9.1/Moqi-0.9.1-Setup.exe)** |
+| **绿色版**　约 68MB | 不装进系统，解压就用，放 U 盘也行 | 👉 **[下载 v0.9.1](https://github.com/keziea/MoQi/releases/download/v0.9.1/Moqi-0.9.1-portable.7z)** |
 
 > **安装版怎么装**：双击 → 选一个安装位置（例如 `D:\`，会自动建 `D:\MoQiReader`）→ 下一步。装完桌面有图标，以后从桌面打开。
 >

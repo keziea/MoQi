@@ -6,6 +6,7 @@ import { useLibrary } from '@/store/useLibrary';
 import { useSettings } from '@/store/useSettings';
 import { useStats } from '@/store/useStats';
 import { useImportDialog } from '@/store/useImportDialog';
+import { useAbout } from '@/store/useAbout';
 import { ipc } from '@/lib/ipc';
 import { groupBooks } from '@/lib/library';
 import { streakDays, type OpenTarget, type WorkspaceNote } from '@/lib/workspace';
@@ -67,6 +68,7 @@ export function Workspace({ section, onSection, onOpen }: Props) {
   const pickAndImport = useLibrary((s) => s.pickAndImport);
 
   const settings = useSettings((s) => s.settings);
+  const openAbout = useAbout((s) => s.openAbout);
   const update = useSettings((s) => s.update);
   const todaySeconds = useStats((s) => s.todaySeconds);
   const refreshProgress = useLibrary((s) => s.refreshProgress);
@@ -271,7 +273,14 @@ export function Workspace({ section, onSection, onOpen }: Props) {
             <Icon name="settings" size={17} />
             <span>设置</span>
           </button>
-          <span className="ws-version">{version ? `v${version}` : ''}</span>
+          <button
+            className="ws-version"
+            type="button"
+            onClick={openAbout}
+            title="关于墨栖 · 查看当前版本"
+          >
+            {version ? `v${version}` : ''}
+          </button>
         </div>
       </aside>
 
@@ -310,6 +319,15 @@ export function Workspace({ section, onSection, onOpen }: Props) {
             >
               <Icon name="import" size={15} />
               我的数据
+            </button>
+            <button
+              className="ws-version-chip"
+              type="button"
+              onClick={openAbout}
+              title="关于墨栖 · 查看当前版本"
+              aria-label={`关于墨栖，当前版本 v${version || '未知'}`}
+            >
+              v{version || '…'}
             </button>
           </div>
         </header>

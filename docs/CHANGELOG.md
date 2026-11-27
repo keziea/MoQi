@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-11-27 · v0.9.1 版本可见性与发版清单（新增 / 修复）
+
+### 背景
+
+用户装完新版后找不到「当前版本」；旧版工作台侧栏还硬编码 `v0.4`，和设置里的 `v0.8.0` 对不上，无法判断自己下的是不是最新版。
+
+### 新增
+
+- **关于墨栖**：全局弹层，显示版本、Electron / Chromium / Node、系统、数据目录，提供 GitHub / Gitee 发行版入口和「复制版本信息」。
+- **三个入口**：工作台右上角 `vX` 胶囊、左侧栏底部版本号、阅读设置底部「关于墨栖 · vX」。
+- **`app.info()` 扩展**：`electron` / `chrome` / `node` / `platform` / `arch`。
+- **`app.openExternal`**：只允许打开写死的四个官方链接，避免渲染进程任意调系统浏览器。
+- **`npm run check:version`**：检查 package / lock / README / AGENTS / CHANGELOG / 发布说明 / 四个下载链接；`predist`、`prepack`、`npm test` 自动跑；`--assets` 额外检查 `release/` 两个包。
+- **`docs/12-版本管理与发布清单.md`**：必改清单、不许改清单、什么时候升/不升版本、发版 10 步、Gitee 配额处理。
+
+### 修复
+
+- 删除工作台侧栏硬编码的 `v0.4`；版本只来自 `package.json`（`app.getVersion()`）。
+- 统一「版本可见位置」，以后发版只改 `package.json`，界面自动变。
+
+### 文档 / 发布
+
+- `README.md` 升到 v0.9.1，首屏下载按钮保留，下载区指向 v0.9.1。
+- `docs/screenshots/05-home.png` 与新增 `09-about.png` 重拍（图里就是 v0.9.1）。
+- `AGENTS.md` 版本、状态表、改动矩阵、发版守则；`docs/09` 指向 `docs/12`。
+- `build/installer.nsh`、`electron-builder.yml` 的版本示例改为通用写法，避免下次发版误改注释。
+
+### 牵连
+
+`src/components/ui/AboutDialog.tsx`、`src/store/useAbout.ts`、`src/styles/about.css`、`src/App.tsx`、`src/pages/Workspace.tsx`、`src/components/reader/SettingsPanel.tsx`、`src/lib/ipc.ts`、`electron/{preload,ipc/index}.ts`、`scripts/check-version.js`、`package.json`。
+
+---
+
 ## 2026-11-27 · v0.9.0 点字查字典（新增 / 修改）
 
 ### 背景

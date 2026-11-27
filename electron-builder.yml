@@ -53,7 +53,7 @@ nsis:
   shortcutName: 墨栖
   # 自定义安装页：全新安装时让用户选数据存放位置（见 build/installer.nsh）
   include: installer.nsh
-  # 产物直接叫 Moqi-0.4.1-Setup.exe，省掉手工改名，也保证与 README 链接一致
+  # 产物直接叫 Moqi-<version>-Setup.exe，省掉手工改名，也保证与 README 链接一致
   artifactName: Moqi-${version}-Setup.${ext}
   # 卸载时保留 %APPDATA%\moqi-reader —— 进度、笔记、统计都在里面，不能跟着程序一起删
   deleteAppDataOnUninstall: false

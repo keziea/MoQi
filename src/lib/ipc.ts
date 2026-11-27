@@ -17,6 +17,12 @@ export interface ScanProgress {
 
 export interface AppInfoLite {
   version: string;
+  /** Electron / Chromium / Node 运行时版本，关于面板用 */
+  electron: string;
+  chrome: string;
+  node: string;
+  platform: string;
+  arch: string;
   dataDir: string;
   dataRoot: string;
   isCustomDataRoot: boolean;
@@ -254,6 +260,8 @@ export interface MoqiApi {
     info(): Promise<AppInfoLite>;
     openDataDir(): Promise<boolean>;
     openPath(p: string): Promise<boolean>;
+    /** 只允许打开「关于」里写死的几个官方链接 */
+    openExternal(url: string): Promise<boolean>;
   };
   win: {
     setFullScreen(on: boolean): Promise<boolean>;

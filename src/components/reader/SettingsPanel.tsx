@@ -3,6 +3,7 @@ import type { FontKind, Settings, ThemeName } from '@shared/models';
 import { Sheet } from '@/components/ui/Sheet';
 import { Icon } from '@/components/ui/Icon';
 import { ipc, type DataLocationInfo } from '@/lib/ipc';
+import { useAbout } from '@/store/useAbout';
 
 interface Props {
   open: boolean;
@@ -273,8 +274,18 @@ export function SettingsPanel({ open, onClose, settings, update, onOpenData }: P
             <Icon name="import" size={15} />
           </button>
         )}
-        <p className="mt-2.5 text-[10.5px] leading-relaxed text-ink-3">
-          墨栖{version ? ` v${version}` : ''} · 书籍、笔记、进度全部保存在本机
+        <button
+          className="mt-2 flex w-full items-center justify-between rounded-[10px] border border-line px-3 py-2.5 text-[12px] text-ink-2 transition-colors hover:bg-surface"
+          onClick={() => {
+            onClose();
+            useAbout.getState().openAbout();
+          }}
+        >
+          <span>关于墨栖 · v{version || '…'}</span>
+          <Icon name="info" size={15} />
+        </button>
+        <p className="mt-2 text-[10.5px] leading-relaxed text-ink-3">
+          书籍、笔记、进度全部保存在本机；离线软件，不会自动检查更新
         </p>
       </Group>
     </Sheet>
